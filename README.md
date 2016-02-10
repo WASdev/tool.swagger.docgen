@@ -46,6 +46,7 @@ Creates a Swagger document for the web application. It can generate both YAML an
 Otherwise, it looks for META-INF/stub/swagger.json or META-INF/stub/swagger.yaml and also scans the application for Swagger/JAX-RS annotations, merging the data extracted from the stub document (if one exists) and annotations to generate a unified Swagger document.
 
 Parameters used by this goal:
+
 | Parameter | Description | Required |
 | --------  | ----------- | -------  |
 | outputFile | Location of the generated Swagger document. **Default value:** \${project.build.directory}/swagger.yaml | No |
