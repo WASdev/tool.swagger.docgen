@@ -2,11 +2,24 @@
 
 Provides a tool for generating Swagger documents for web applications.
 
-## Build
+## Installation
 
-Use Maven 2.x or 3.x to build the Liberty plugins and archetypes.
+Use Maven 2.x or 3.x to build the Swaggerdocgen plugin.
 
-* `mvn install` : builds the plugin and the archetype.
+1. Clone the repository
+   ```sh
+   $ git clone https://github.com/WASdev/tool.swagger.docgen.git
+   ```
+
+2. Navigate to the tool.swagger.docgen folder
+   ```sh
+   $ cd tool.swagger.docgen
+   ```
+
+3. Build the plugin
+   ```sh
+   $ mvn install
+   ```
 
 ## Plugins
 
