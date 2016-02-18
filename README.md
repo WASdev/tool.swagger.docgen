@@ -1,10 +1,12 @@
 # tool.swagger.docgen
 
-Provides a tool for generating Swagger documents for web applications.
+Swaggerdocgen Maven Plug-in provides a tool for generating Swagger documents for you web applications. The Swaggerdocgen Maven Plug-in 1.0 release is available on the [Maven central] (http://search.maven.org/#search%7Cga%7C1%7Cswaggerdocgen) repository. Alternatively, you can refer to [Installation] (#installation) section and follow the steps to install the plug-in in your local repository.
+
+*Note:* When using the swaggerdocgen: goals, it is assumed that the package phase is already done. The Plugin is not responsible for packaging the web application into WAR.
 
 ## Installation
 
-Use Maven 2.x or 3.x to build the Swaggerdocgen plugin.
+Use Maven 3.x to build the Swaggerdocgen plug-in.
 
 1. Clone the repository
    ```sh
@@ -16,12 +18,13 @@ Use Maven 2.x or 3.x to build the Swaggerdocgen plugin.
    $ cd tool.swagger.docgen
    ```
 
-3. Build the plugin
+3. Build the plug-in
    ```sh
    $ mvn install
    ```
 
-## Plugins
+
+## Plugin
 
 ### swaggerdocgen-maven-plugin
 
@@ -36,14 +39,14 @@ To enable `swaggerdocgen-maven-plugin` in your project add the following to your
     ...
     <build>
         <plugins>
-			<!-- Enable liberty-maven-plugin -->
-			<plugin>
-				<groupId>net.wasdev.maven.plugins.swaggerdocgen</groupId>
-				<artifactId>swaggerdocgen-maven-plugin</artifactId>
-				<version>1.0</version>
-				<!-- Specify configuration, executions for swaggerdocgen-maven-plugin -->
-				...
-			</plugin>
+            <!-- Enable liberty-maven-plugin -->
+            <plugin>
+                <groupId>net.wasdev.maven.plugins</groupId>
+                <artifactId>swaggerdocgen-maven-plugin</artifactId>
+                <version>1.0</version>
+                <!-- Specify configuration, executions for swaggerdocgen-maven-plugin -->
+                ...
+            </plugin>
 
         </plugins>
     </build>
@@ -69,26 +72,26 @@ Example:
 ```xml
 <project>
     ...
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>net.wasdev.maven.plugins.swaggerdocgen</groupId>
-				<artifactId>swaggerdocgen-maven-plugin</artifactId>
-				<version>1.0</version>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>create</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-				    <outputFile>${project.build.directory}/swagger.json</outputFile>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>net.wasdev.maven.plugins</groupId>
+                <artifactId>swaggerdocgen-maven-plugin</artifactId>
+                <version>1.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>create</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <outputFile>${project.build.directory}/swagger.json</outputFile>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
     ...
 </project>
 ```
