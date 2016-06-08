@@ -27,6 +27,8 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.adapters.CollapsedStringAdapter;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlRootElement(name = "web-app")
@@ -94,6 +96,7 @@ public class WebApp {
 		private String servletName;
 
 		@XmlElement(name = "url-pattern")
+		@XmlJavaTypeAdapter(CollapsedStringAdapter.class)
 		private List<String> urlPatterns;
 
 		public String getServletName() {
