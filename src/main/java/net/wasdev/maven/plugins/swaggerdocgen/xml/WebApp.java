@@ -35,6 +35,8 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 public class WebApp {
 
     private static final Logger logger = Logger.getLogger(WebApp.class.getName());
+    
+    private static volatile JAXBContext context = null;
 
     @XmlElement(name = "servlet")
     private List<Servlet> servlets;
@@ -110,8 +112,18 @@ public class WebApp {
 
     public static WebApp loadWebXML(InputStream xml) {
         try {
-            JAXBContext context = JAXBContext.newInstance(WebApp.class);
-            Unmarshaller unm = context.createUnmarshaller();
+            // Cache the JAXBContext on first use.
+            JAXBContext ctx = context;
+            if (ctx == null) {
+                synchronized (WebApp.class) {
+                    ctx = context;
+                    if (ctx == null) {
+                        ctx = JAXBContext.newInstance(WebApp.class);
+                        context = ctx;
+                    }
+                }
+            }
+            Unmarshaller unm = ctx.createUnmarshaller();
             return (WebApp) unm.unmarshal(xml);
         } catch (JAXBException e) {
             logger.finest(e.getMessage());
