@@ -57,8 +57,11 @@ public class WebApp {
             return null;
         }
         for (Servlet servlet : servlets) {
-            if (servlet.getName().equals(name)) {
-                return servlet;
+            if (servlet != null) {
+                final String servletName = servlet.getName();
+                if (servletName != null && servletName.equals(name)) {
+                    return servlet;
+                }
             }
         }
         return null;
@@ -69,8 +72,11 @@ public class WebApp {
             return null;
         }
         for (ServletMapping sm : servletMappings) {
-            if (sm.getServletName().equals(servletName)) {
-                return sm.getUrlPatterns();
+            if (sm != null) {
+                final String servletMappingName = sm.getServletName();
+                if (servletMappingName != null && servletMappingName.equals(servletName)) {
+                    return sm.getUrlPatterns();
+                }
             }
         }
         return null;

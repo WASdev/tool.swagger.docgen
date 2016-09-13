@@ -46,9 +46,15 @@ public class Servlet {
     }
 
     public String getInitParamValue(String paramName) {
+        if (initParams == null) {
+            return null;
+        }
         for (InitParam initParam : initParams) {
-            if (initParam.getName().equals(paramName)) {
-                return initParam.getValue();
+            if (initParam != null) {
+                final String initParamName = initParam.getName();
+                if (initParamName != null && initParamName.equals(paramName)) {
+                    return initParam.getValue();
+                }
             }
         }
         return null;
