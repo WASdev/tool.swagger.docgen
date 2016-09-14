@@ -163,7 +163,7 @@ public class SwaggerAnnotationsScanner {
 
         Servlet servlet = webApp.getServlet(appClassName);
         if (servlet != null) {
-            logger.finest("Found servlet using sevlet-name: " + appClassName);
+            logger.finest("Found servlet using servlet-name: " + appClassName);
             return webApp.getServletMapping(servlet.getName());
         }
 
@@ -174,7 +174,7 @@ public class SwaggerAnnotationsScanner {
                 // Check if <servlet-class> is application
                 String servletClass = srvlet.getServletClass();
                 if (servletClass != null && servletClass.equals(appClassName)) {
-                    logger.finest("Found servlet using sevlet-class");
+                    logger.finest("Found servlet using servlet-class");
                     return webApp.getServletMapping(srvlet.getName());
                 }
                 // check if application is specified through init-param
