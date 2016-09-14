@@ -193,7 +193,8 @@ public class SwaggerAnnotationsScanner {
 		String urlPattern = null;
 		if (appClasses.size() == 0) {
 			urlPattern = getUrlPatternForCoreAppServlet();
-		} else if (appClasses.size() == 1) {
+		} 
+		else if (appClasses.size() == 1) {
 			Class<?> appClass = appClasses.iterator().next();
 			urlPattern = findServletMappingForApp(appClass.getName());
 			if (urlPattern == null) {
@@ -201,7 +202,7 @@ public class SwaggerAnnotationsScanner {
 				if (apath != null) {
 					urlPattern = apath.value();
 					if (urlPattern == null || urlPattern.isEmpty() || urlPattern.equals("/")) {
-						return null;
+						return "";
 					}
 					if (urlPattern != null && !urlPattern.startsWith("/")) {
 						urlPattern = "/" + urlPattern;
