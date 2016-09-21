@@ -20,8 +20,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
@@ -190,29 +192,102 @@ public class SwaggerAnnotationsScanner {
         return null;
     }
 
-    public String getUrlMapping() {
-        String urlPattern = null;
-        if (appClasses.size() == 0) {
-            urlPattern = getUrlPatternForCoreAppServlet();
-        } 
-        else if (appClasses.size() == 1) {
-            Class<?> appClass = appClasses.iterator().next();
-            urlPattern = findServletMappingForApp(appClass.getName());
-            if (urlPattern == null) {
-                ApplicationPath apath = appClass.getAnnotation(ApplicationPath.class);
-                if (apath != null) {
-                    urlPattern = apath.value();
-                    if (urlPattern == null || urlPattern.isEmpty() || urlPattern.equals("/")) {
-                        return "";
-                    }
-                    if (urlPattern != null && !urlPattern.startsWith("/")) {
-                        urlPattern = "/" + urlPattern;
-                    }
-                } else {
-                    logger.finest("Didn't find @ApplicationPath in Application classs " + appClass.getName());
+    public Object getUrlMapping() {
+        
+        final Set<Class<?>> appClasses = this.appClasses;
+        final int size = appClasses.size();
+        
+        if (size < 2) {
+            String urlMapping = null;
+            if (size == 0) {
+                urlMapping = getUrlPatternForCoreAppServlet();
+            } 
+            else {
+                Class<?> appClass = appClasses.iterator().next();
+                urlMapping = findServletMappingForApp(appClass.getName());
+                if (urlMapping == null) {
+                    urlMapping = getURLMappingFromApplication(appClass);
                 }
             }
+            return urlMapping;
         }
-        return urlPattern;
+        else {
+            // Mapping between operation paths and URLs.
+            final Map<String, String> urlMappings = new HashMap<String, String>();
+            final Set<String> allOperationPaths = new HashSet<String>();
+            for (Class<?> appClass : appClasses) {
+                String urlMapping = findServletMappingForApp(appClass.getName());
+                if (urlMapping == null) {
+                    urlMapping = getURLMappingFromApplication(appClass);
+                }
+                if (urlMapping == null) {
+                    continue;
+                }
+                Set<Class<?>> classes = getClassesFromApplication(appClass);
+                if (classes != null) {
+                    for (Class<?> cls : classes) {
+                        Set<String> operationPaths = JAXRSAnnotationsUtil.getOperationPaths(cls);
+                        if (!allOperationPaths.isEmpty()) {
+                            for (String operationPath : operationPaths) {
+                                // More than one operation has the same operation path.
+                                // Only support a mix of applications that have unique
+                                // 1-n mappings between URLs and operation paths for now.
+                                if (allOperationPaths.contains(operationPath)) {
+                                    return null;
+                                }
+                                allOperationPaths.add(operationPath);
+                                urlMappings.put(operationPath, urlMapping);
+                            }
+                        }
+                        else {
+                            allOperationPaths.addAll(operationPaths);
+                        }
+                    }
+                }
+            }
+            return urlMappings;
+        }
+    }
+    
+    private String getURLMappingFromApplication(Class<?> appClass) {
+        ApplicationPath apath = appClass.getAnnotation(ApplicationPath.class);
+        if (apath != null) {
+            String urlMapping = apath.value();
+            if (urlMapping == null || urlMapping.isEmpty() || urlMapping.equals("/")) {
+                return "";
+            }
+            if (urlMapping != null && !urlMapping.startsWith("/")) {
+                urlMapping = "/" + urlMapping;
+            }
+            return urlMapping;
+        } 
+        else {
+            logger.finest("Didn't find @ApplicationPath in Application classs " + appClass.getName());
+        }
+        return null;
+    }
+    
+    public Set<Class<?>> getClassesFromApplication(Class<?> appClass) {
+        try {
+            if (!Application.class.isAssignableFrom(appClass)) {
+                return null;
+            }
+            Application app = (Application) appClass.newInstance();
+            Set<Class<?>> clss = app.getClasses();
+            Set<Object> singletons = app.getSingletons();
+            HashSet<Class<?>> classes = new HashSet<Class<?>>();
+            for (Class<?> cls : clss) {
+                classes.add(cls);
+            }
+            for (Object singleton : singletons) {
+                classes.add(singleton.getClass());
+            }
+            return classes;
+        } catch (IllegalAccessException e) {
+            logger.finest("Failed to initialize Application: " + appClass.getName() + ": " + e.getMessage());
+        } catch (InstantiationException e) {
+            logger.finest("Failed to initialize Application: " + appClass.getName() + ": " + e.getMessage());
+        }
+        return null;
     }
 }

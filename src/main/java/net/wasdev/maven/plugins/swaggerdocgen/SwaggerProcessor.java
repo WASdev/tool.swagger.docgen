@@ -41,6 +41,7 @@ import io.swagger.util.Json;
 import io.swagger.util.Yaml;
 
 public class SwaggerProcessor {
+    
 	// Location of Swagger JSON doc in module
 	private static final String DEFAULT_SWAGGER_JSON_LOCATION = "META-INF/swagger.json";
 
@@ -156,20 +157,37 @@ public class SwaggerProcessor {
 		throw new IllegalArgumentException("Unsupported document type: " + ext);
 	}
 
-	private Swagger addUrlMapping(Swagger result, Set<String> ignorePaths, String urlMapping) {
-		if (urlMapping == null || urlMapping == "") {
+	private Swagger addUrlMapping(Swagger result, Set<String> ignorePaths, Object urlMappings) {
+		if (urlMappings == null || "".equals(urlMappings)) {
 			return result;
 		}
 
 		Map<String, Path> paths = result.getPaths();
 		Map<String, Path> newPaths = new HashMap<String, Path>();
-		for (Entry<String, Path> pathEntry : paths.entrySet()) {
-			if (ignorePaths != null && ignorePaths.contains(pathEntry.getKey())) {
-				newPaths.put(pathEntry.getKey(), pathEntry.getValue());
-				continue;
-			}
-			newPaths.put(urlMapping + pathEntry.getKey(), pathEntry.getValue());
+		
+		if (urlMappings instanceof String) {
+		    final String urlMapping = (String) urlMappings;
+		    for (Entry<String, Path> pathEntry : paths.entrySet()) {
+		        if (ignorePaths != null && ignorePaths.contains(pathEntry.getKey())) {
+		            newPaths.put(pathEntry.getKey(), pathEntry.getValue());
+		            continue;
+		        }
+		        newPaths.put(urlMapping + pathEntry.getKey(), pathEntry.getValue());
+		    }
 		}
+		else {
+		    @SuppressWarnings("unchecked")
+		    Map<String, String> mappings = (Map<String, String>) urlMappings;
+		    for (Entry<String, Path> pathEntry : paths.entrySet()) {
+		        final String urlMapping = mappings.get(pathEntry.getKey());
+		        if ((ignorePaths != null && ignorePaths.contains(pathEntry.getKey())) || urlMapping == null) {
+		            newPaths.put(pathEntry.getKey(), pathEntry.getValue());
+		            continue;
+		        }
+		        newPaths.put(urlMapping + pathEntry.getKey(), pathEntry.getValue());
+		    }
+		}
+
 		result.setPaths(newPaths);
 		return result;
 	}
