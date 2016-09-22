@@ -34,88 +34,106 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 @XmlRootElement(name = "web-app")
 public class WebApp {
 
-	private static final Logger logger = Logger.getLogger(WebApp.class.getName());
+    private static final Logger logger = Logger.getLogger(WebApp.class.getName());
+    
+    private static volatile JAXBContext context = null;
 
-	@XmlElement(name = "servlet")
-	private List<Servlet> servlets;
+    @XmlElement(name = "servlet")
+    private List<Servlet> servlets;
 
-	@XmlElement(name = "servlet-mapping")
-	private List<ServletMapping> servletMappings;
+    @XmlElement(name = "servlet-mapping")
+    private List<ServletMapping> servletMappings;
 
-	public List<Servlet> getServlets() {
-		return servlets;
-	}
+    public List<Servlet> getServlets() {
+        return servlets;
+    }
 
-	public List<ServletMapping> getServletMappings() {
-		return servletMappings;
-	}
+    public List<ServletMapping> getServletMappings() {
+        return servletMappings;
+    }
 
-	public Servlet getServlet(String name) {
-		if (servlets == null) {
-			return null;
-		}
-		for (Servlet servlet : servlets) {
-			if (servlet.getName().equals(name)) {
-				return servlet;
-			}
-		}
-		return null;
-	}
+    public Servlet getServlet(String name) {
+        if (servlets == null) {
+            return null;
+        }
+        for (Servlet servlet : servlets) {
+            if (servlet != null) {
+                final String servletName = servlet.getName();
+                if (servletName != null && servletName.equals(name)) {
+                    return servlet;
+                }
+            }
+        }
+        return null;
+    }
 
-	public List<String> getServletUrlPatterns(String servletName) {
-		if (servletMappings == null) {
-			return null;
-		}
-		for (ServletMapping sm : servletMappings) {
-			if (sm.getServletName().equals(servletName)) {
-				return sm.getUrlPatterns();
-			}
-		}
-		return null;
-	}
+    public List<String> getServletUrlPatterns(String servletName) {
+        if (servletMappings == null) {
+            return null;
+        }
+        for (ServletMapping sm : servletMappings) {
+            if (sm != null) {
+                final String servletMappingName = sm.getServletName();
+                if (servletMappingName != null && servletMappingName.equals(servletName)) {
+                    return sm.getUrlPatterns();
+                }
+            }
+        }
+        return null;
+    }
 
-	public String getServletMapping(String servletName) {
-		List<String> urlPatterns = getServletUrlPatterns(servletName);
-		if (urlPatterns != null && !urlPatterns.isEmpty()) {
-			String urlMapping = urlPatterns.get(0);
-			if (urlMapping.endsWith("/*")) {
-				urlMapping = urlMapping.substring(0, urlMapping.length() - 2);
-			}
-			if (urlMapping.endsWith("/")) {
-				urlMapping = urlMapping.substring(0, urlMapping.length() - 1);
-			}
-			return urlMapping;
-		}
-		return null;
-	}
+    public String getServletMapping(String servletName) {
+        List<String> urlPatterns = getServletUrlPatterns(servletName);
+        if (urlPatterns != null && !urlPatterns.isEmpty()) {
+            String urlMapping = urlPatterns.get(0);
+            if (urlMapping.endsWith("/*")) {
+                urlMapping = urlMapping.substring(0, urlMapping.length() - 2);
+            }
+            if (urlMapping.endsWith("/")) {
+                urlMapping = urlMapping.substring(0, urlMapping.length() - 1);
+            }
+            return urlMapping;
+        }
+        return null;
+    }
 
-	@XmlAccessorType(XmlAccessType.FIELD)
-	public static class ServletMapping {
+    @XmlAccessorType(XmlAccessType.FIELD)
+    public static class ServletMapping {
 
-		@XmlElement(name = "servlet-name")
-		private String servletName;
+        @XmlElement(name = "servlet-name")
+        private String servletName;
 
-		@XmlElement(name = "url-pattern")
-		@XmlJavaTypeAdapter(CollapsedStringAdapter.class)
-		private List<String> urlPatterns;
+        @XmlElement(name = "url-pattern")
+        @XmlJavaTypeAdapter(CollapsedStringAdapter.class)
+        private List<String> urlPatterns;
 
-		public String getServletName() {
-			return servletName;
-		}
+        public String getServletName() {
+            return servletName;
+        }
 
-		public List<String> getUrlPatterns() {
-			return urlPatterns;
-		}
-	}
+        public List<String> getUrlPatterns() {
+            return urlPatterns;
+        }
+    }
 
-	public static WebApp loadWebXML(InputStream xml) {
-		try {
-			JAXBContext context = JAXBContext.newInstance(WebApp.class);
-			Unmarshaller unm = context.createUnmarshaller();
-			return (WebApp) unm.unmarshal(xml);
-		} catch (JAXBException e) {
-			logger.finest(e.getMessage());
-		}
-		return null;
-	}
+    public static WebApp loadWebXML(InputStream xml) {
+        try {
+            // Cache the JAXBContext on first use.
+            JAXBContext ctx = context;
+            if (ctx == null) {
+                synchronized (WebApp.class) {
+                    ctx = context;
+                    if (ctx == null) {
+                        ctx = JAXBContext.newInstance(WebApp.class);
+                        context = ctx;
+                    }
+                }
+            }
+            Unmarshaller unm = ctx.createUnmarshaller();
+            return (WebApp) unm.unmarshal(xml);
+        } catch (JAXBException e) {
+            logger.finest(e.getMessage());
+        }
+        return null;
+    }
 }

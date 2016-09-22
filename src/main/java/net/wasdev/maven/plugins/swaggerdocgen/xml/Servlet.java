@@ -24,51 +24,57 @@ import javax.xml.bind.annotation.XmlElement;
 
 @XmlAccessorType(XmlAccessType.FIELD)
 public class Servlet {
-	@XmlElement(name = "servlet-name")
-	private String name;
+    @XmlElement(name = "servlet-name")
+    private String name;
 
-	@XmlElement(name = "init-param")
-	private List<InitParam> initParams;
+    @XmlElement(name = "init-param")
+    private List<InitParam> initParams;
 
-	@XmlElement(name = "servlet-class")
-	private String servletClass;
+    @XmlElement(name = "servlet-class")
+    private String servletClass;
 
-	public String getName() {
-		return name;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public List<InitParam> getInitParams() {
-		return initParams;
-	}
+    public List<InitParam> getInitParams() {
+        return initParams;
+    }
 
-	public String getServletClass() {
-		return servletClass;
-	}
+    public String getServletClass() {
+        return servletClass;
+    }
 
-	public String getInitParamValue(String paramName) {
-		for (InitParam initParam : initParams) {
-			if (initParam.getName().equals(paramName)) {
-				return initParam.getValue();
-			}
-		}
-		return null;
-	}
+    public String getInitParamValue(String paramName) {
+        if (initParams == null) {
+            return null;
+        }
+        for (InitParam initParam : initParams) {
+            if (initParam != null) {
+                final String initParamName = initParam.getName();
+                if (initParamName != null && initParamName.equals(paramName)) {
+                    return initParam.getValue();
+                }
+            }
+        }
+        return null;
+    }
 
-	@XmlAccessorType(XmlAccessType.FIELD)
-	public static class InitParam {
+    @XmlAccessorType(XmlAccessType.FIELD)
+    public static class InitParam {
 
-		@XmlElement(name = "param-name")
-		private String name;
+        @XmlElement(name = "param-name")
+        private String name;
 
-		@XmlElement(name = "param-value")
-		private String value;
+        @XmlElement(name = "param-value")
+        private String value;
 
-		public String getName() {
-			return name;
-		}
+        public String getName() {
+            return name;
+        }
 
-		public String getValue() {
-			return value;
-		}
-	}
+        public String getValue() {
+            return value;
+        }
+    }
 }
