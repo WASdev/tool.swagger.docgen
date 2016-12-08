@@ -1,6 +1,6 @@
 # tool.swagger.docgen
 
-Swaggerdocgen Maven Plug-in provides a tool for generating Swagger documents for you web applications. The Swaggerdocgen Maven Plug-in 1.0 release is available on the [Maven central] (http://search.maven.org/#search%7Cga%7C1%7Cswaggerdocgen) repository. Alternatively, you can refer to [Installation] (#installation) section and follow the steps to install the plug-in in your local repository.
+Swaggerdocgen Maven Plug-in provides a tool for generating Swagger documents for you web applications. The Swaggerdocgen Maven Plug-in 1.1 release is available on the [Maven central] (http://search.maven.org/#search%7Cga%7C1%7Cswaggerdocgen) repository. Alternatively, you can refer to [Installation] (#installation) section and follow the steps to install the plug-in in your local repository.
 
 *Note:* When using the swaggerdocgen: goals, it is assumed that the package phase is already done. The Plugin is not responsible for packaging the web application into WAR.
 
@@ -43,7 +43,7 @@ To enable `swaggerdocgen-maven-plugin` in your project add the following to your
             <plugin>
                 <groupId>net.wasdev.maven.plugins</groupId>
                 <artifactId>swaggerdocgen-maven-plugin</artifactId>
-                <version>1.0</version>
+                <version>1.1</version>
                 <!-- Specify configuration, executions for swaggerdocgen-maven-plugin -->
                 ...
             </plugin>
@@ -77,7 +77,7 @@ Example:
             <plugin>
                 <groupId>net.wasdev.maven.plugins</groupId>
                 <artifactId>swaggerdocgen-maven-plugin</artifactId>
-                <version>1.0</version>
+                <version>1.1</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
