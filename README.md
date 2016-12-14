@@ -96,3 +96,25 @@ Example:
 </project>
 ```
 
+
+## Use without maven
+
+### Build
+You must build the JAR with dependencies in order to use the swagger processor.
+
+1. Build the JAR.
+```sh
+$ mvn package -P include-dependencies
+```
+2. To use the processor you must include all the dependencies of your Java Enterprise Application to your java classpath. 
+
+Windows example:
+```sh
+> java -cp ".;target\swaggerdocgen-maven-plugin-1.1-jar-with-dependencies.jar;C:\libertyRuntime\dev\api\spec\*" net.wasdev.maven.plugins.swaggerdocgen.GenerateSwaggerFile ..\..\path-to-application\app.war
+```
+Unix Example:
+```sh
+$ java -cp ".:target/swaggerdocgen-maven-plugin-1.1-jar-with-dependencies.jar:/libertyRuntime/dev/api/spec/*" net.wasdev.maven.plugins.swaggerdocgen.GenerateSwaggerFile ../../path-to-application/app.war
+```
+
+3. The swagger.json is produced in the same directory as your application.
