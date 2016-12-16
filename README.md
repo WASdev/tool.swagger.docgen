@@ -121,9 +121,18 @@ You must build the JAR with dependencies in order to use the swagger processor.
    ```
 
 3. The default behavior is that a swagger.yaml will appear in the same directory as your application.
-   (Optional)
-   You can alternatively add an argument `swagger.json` and a JSON file will be created.
-   You can also specify the full path where you want your swagger file to be produced.
+   
+#### (Optional)
+You can alternatively add an argument `swagger.json` and a JSON file will be created in the `path-to-application` directory.
+```sh
+$ java -cp ".:target/swaggerdocgen-maven-plugin-1.1-jar-with-dependencies.jar:/libertyRuntime/dev/api/spec/*" net.wasdev.maven.plugins.swaggerdocgen.GenerateSwaggerFile /../path-to-application/app.war swagger.json
+```
+You can also specify the full path where you want your swagger file to be produced.
+```sh
+$ java -cp ".:target/swaggerdocgen-maven-plugin-1.1-jar-with-dependencies.jar:/libertyRuntime/dev/api/spec/*" net.wasdev.maven.plugins.swaggerdocgen.GenerateSwaggerFile /../path-to-application/app.war /path-to-swagger/swagger.json
+```
+
+
 
    
 
