@@ -1,37 +1,93 @@
+/**
+* (C) Copyright IBM Corporation 2016.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 package net.wasdev.maven.plugins.swaggerdocgen;
 
 import java.io.File;
 
+import org.apache.commons.io.FilenameUtils;
+
 
 public class GenerateSwaggerFile {
-	public static void main(String[] args) {
-		if(args.length != 1) {
-			System.out.println("Please provide a single argument containing the path of the application WAR");
-		} else {
-			
-			File warFile = new File(args[0]);
-			if(warFile.exists()) {
-				File warFileDirectory = warFile.getAbsoluteFile().getParentFile();
-				if(warFileDirectory != null) {
-					File outputFile = new File(warFileDirectory.getPath() + File.separator + "swagger.json");
-					
-					try {
-						SwaggerProcessor processor = new SwaggerProcessor(GenerateSwaggerFile.class.getClassLoader(), warFile, outputFile); 
-						processor.process();
-						
-						System.out.println("Success: Your swagger.json file was succcessfully generated.");
-					} catch(Exception e) {
-						System.out.println("Please include all dependencies of the application in the classpath - including the runtime of the java ee application.");
-						System.out.println(e);
-					}
-					
-					
-				} else {
-					System.out.println("Error: The specified WAR application could not be found.");
-				}
-			} else {
-				System.out.println("Error: The specified WAR application could not be found.");
-			}
-		}
-	}
+    public static void main(String[] args) throws Exception {
+        if(args.length == 1 || args.length == 2) {
+            File warFile = handleFirstArgument(args[0]);
+            if(warFile == null) {
+                System.exit(1);
+            }
+
+            File outputFile;
+            if(args.length == 1) {
+                outputFile = handleSecondArgument(warFile,null);
+            } else {
+                outputFile = handleSecondArgument(warFile,args[1]);
+            }
+
+            if(outputFile == null) {
+                System.exit(1);
+            }
+
+            SwaggerProcessor processor = new SwaggerProcessor(GenerateSwaggerFile.class.getClassLoader(), warFile, outputFile); 
+            processor.process();
+                
+            System.out.println("Success: Your swagger file was succcessfully generated.");
+            
+            System.exit(0);
+        }
+
+        System.out.println("Please provide the path of the WAR application as an argument (and optionally the name of the swagger file)");
+        System.exit(1);
+    }
+
+
+    /**
+    * Handle the first argument.
+    * Return WAR application as a file on success
+    * Return null if failiure
+    */
+    private static File handleFirstArgument(String argument) {
+        File warFile = new File(argument);
+        if(warFile.exists()) {
+            return warFile;
+        }
+
+        System.out.println("Error: The specified WAR application could not be found.");
+        return null;
+    }
+
+    /**
+    * Handle the second argument
+    * Return output File object on success
+    * Return null if failiure
+    */
+    private static File handleSecondArgument(File warFile, String argument) {
+        File warFileDirectory = warFile.getAbsoluteFile().getParentFile();
+        if(argument == null) {
+            return new File(warFileDirectory.getPath() + File.separator + "swagger.yaml");
+        }
+        String ext = FilenameUtils.getExtension(argument);
+        if(!(ext.equalsIgnoreCase("json") || ext.equalsIgnoreCase("yaml"))) {
+            System.out.println("Please specify the extension type as json or yaml");
+            return null;
+        }
+        File tempFile = new File(argument);
+        if(tempFile.isAbsolute() && !tempFile.isDirectory()) {
+            return tempFile;
+        }
+
+        return new File(warFileDirectory.getPath() + File.separator + argument);
+
+    }
 }
