@@ -107,10 +107,11 @@ You must build the JAR with dependencies in order to use the swagger processor.
    ```sh
    $ mvn package -P include-dependencies
    ```
-2. To use the processor you must include all the dependencies of your Java Enterprise Application to your java classpath. The examples include some simple dependencies from the liberty runtime and the java-ee spec. 
+2. To use the processor you **must include all the dependencies of your Java Enterprise Application to your java classpath**. The examples include some simple dependencies from the liberty runtime and the java-ee spec. 
 
    In order to run the jar make sure you **do _not_ specify -jar** as it will override the specified classpath. Instead call the main class:
    `net.wasdev.maven.plugins.swaggerdocgen.GenerateSwaggerFile` and specify the path to the application as the only argument.
+   
    Windows example:
    ```sh
    > java -cp ".;target\swaggerdocgen-maven-plugin-1.1-jar-with-dependencies.jar;C:\libertyRuntime\dev\api\spec\*" net.wasdev.maven.plugins.swaggerdocgen.GenerateSwaggerFile C:\..\path-to-application\app.war
