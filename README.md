@@ -102,21 +102,29 @@ Example:
 ### Build
 You must build the JAR with dependencies in order to use the swagger processor.
 
-1. Build the JAR.
+1. Build the JAR
+
    ```sh
    $ mvn package -P include-dependencies
    ```
-2. To use the processor you must include all the dependencies of your Java Enterprise Application to your java classpath. The examples include some basic libraries from the liberty runtime and the java-ee spec. 
+2. To use the processor you must include all the dependencies of your Java Enterprise Application to your java classpath. The examples include some simple dependencies from the liberty runtime and the java-ee spec. 
 
-   In order to run the jar make sure you do not specify -jar as it will override the specified classpath. Instead call the main class:
+   In order to run the jar make sure you **do _not_ specify -jar** as it will override the specified classpath. Instead call the main class:
    `net.wasdev.maven.plugins.swaggerdocgen.GenerateSwaggerFile` and specify the path to the application as the only argument.
    Windows example:
    ```sh
-   > java -cp ".;target\swaggerdocgen-maven-plugin-1.1-jar-with-dependencies.jar;C:\libertyRuntime\dev\api\spec\*"      net.wasdev.maven.plugins.swaggerdocgen.GenerateSwaggerFile ..\..\path-to-application\app.war
+   > java -cp ".;target\swaggerdocgen-maven-plugin-1.1-jar-with-dependencies.jar;C:\libertyRuntime\dev\api\spec\*" net.wasdev.maven.plugins.swaggerdocgen.GenerateSwaggerFile C:\..\path-to-application\app.war
    ```
    Unix Example:
    ```sh
-   $ java -cp ".:target/swaggerdocgen-maven-plugin-1.1-jar-with-dependencies.jar:/libertyRuntime/dev/api/spec/*" net.wasdev.maven.plugins.swaggerdocgen.GenerateSwaggerFile ../../path-to-application/app.war
+   $ java -cp ".:target/swaggerdocgen-maven-plugin-1.1-jar-with-dependencies.jar:/libertyRuntime/dev/api/spec/*" net.wasdev.maven.plugins.swaggerdocgen.GenerateSwaggerFile /../path-to-application/app.war
    ```
 
-3. The swagger.json is produced in the same directory as your application.
+3. The default behavior is that a swagger.yaml will appear in the same directory as your application.
+   (Optional)
+   You can alternatively add an argument `swagger.json` and a JSON file will be created.
+   You can also specify the full path where you want your swagger file to be produced.
+
+   
+
+
