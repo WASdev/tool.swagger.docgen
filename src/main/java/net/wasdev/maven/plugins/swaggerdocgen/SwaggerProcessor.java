@@ -207,6 +207,6 @@ public class SwaggerProcessor {
 	}
 
 	private String createJSONfromPojo(Object pojo) throws IOException {
-		return Json.mapper().writeValueAsString(pojo);
+		return Json.pretty(pojo);
 	}
 }
