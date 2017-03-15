@@ -100,7 +100,7 @@ Example:
 ## Use without maven
 
 ### Build
-You must build the JAR with dependencies in order to use the swagger processor. *Note:* Replace <plugin_version> with the plugin version (e.g. 1.2).
+You must build the JAR with dependencies in order to use the swagger processor. *Note:* Replace <plugin_version> with the swaggerdocgen plugin version (e.g. 1.2) on the example commands below.
 
 1. Build the JAR
 
