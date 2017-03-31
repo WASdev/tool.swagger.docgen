@@ -1,3 +1,4 @@
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/net.wasdev.maven.plugins/swaggerdocgen-maven-plugin/badge.svg)](https://maven-badges.herokuapp.com/maven-central/net.wasdev.maven.plugins/swaggerdocgen-maven-plugin/badge.svg)
 # tool.swagger.docgen
 
 Swaggerdocgen Maven Plug-in provides a tool for generating Swagger documents for you web applications. The Swaggerdocgen Maven plug-in is available on the [Maven central](http://search.maven.org/#search%7Cga%7C1%7Cswaggerdocgen) repository. Alternatively, you can refer to [Installation](#installation) section and follow the steps to install the plug-in in your local repository.
