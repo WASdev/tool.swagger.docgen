@@ -41,7 +41,7 @@ import io.swagger.util.Json;
 import io.swagger.util.Yaml;
 
 public class SwaggerProcessor {
-    
+
 	// Location of Swagger JSON doc in module
 	private static final String DEFAULT_SWAGGER_JSON_LOCATION = "META-INF/swagger.json";
 
@@ -139,8 +139,7 @@ public class SwaggerProcessor {
 
 	private String getSwaggerDocFromAnnotatedClasses(ZipFile warZipFile, Swagger swaggerStubModel) throws IOException {
 		SwaggerAnnotationsScanner annScan = null;
-		try
-		{
+		try {
 			annScan = new SwaggerAnnotationsScanner(classLoader, warZipFile);
 			Set<Class<?>> classes = annScan.getScannedClasses();
 			Reader reader = new Reader(swaggerStubModel);
@@ -153,15 +152,12 @@ public class SwaggerProcessor {
 			String ext = FilenameUtils.getExtension(this.outputFile.getName());
 			if (ext.equalsIgnoreCase("json")) {
 				return createJSONfromPojo(swresult);
-			} else if (ext.equalsIgnoreCase("yaml")){
+			} else if (ext.equalsIgnoreCase("yaml")) {
 				return createYAMLfromPojo(swresult);
 			}
 			throw new IllegalArgumentException("Unsupported document type: " + ext);
-		}
-		finally
-		{
-			if(annScan != null)
-			{
+		} finally {
+			if (annScan != null) {
 				annScan.cleanupJarFolder();
 			}
 		}
@@ -174,28 +170,27 @@ public class SwaggerProcessor {
 
 		Map<String, Path> paths = result.getPaths();
 		Map<String, Path> newPaths = new HashMap<String, Path>();
-		
+
 		if (urlMappings instanceof String) {
-		    final String urlMapping = (String) urlMappings;
-		    for (Entry<String, Path> pathEntry : paths.entrySet()) {
-		        if (ignorePaths != null && ignorePaths.contains(pathEntry.getKey())) {
-		            newPaths.put(pathEntry.getKey(), pathEntry.getValue());
-		            continue;
-		        }
-		        newPaths.put(urlMapping + pathEntry.getKey(), pathEntry.getValue());
-		    }
-		}
-		else {
-		    @SuppressWarnings("unchecked")
-		    Map<String, String> mappings = (Map<String, String>) urlMappings;
-		    for (Entry<String, Path> pathEntry : paths.entrySet()) {
-		        final String urlMapping = mappings.get(pathEntry.getKey());
-		        if ((ignorePaths != null && ignorePaths.contains(pathEntry.getKey())) || urlMapping == null) {
-		            newPaths.put(pathEntry.getKey(), pathEntry.getValue());
-		            continue;
-		        }
-		        newPaths.put(urlMapping + pathEntry.getKey(), pathEntry.getValue());
-		    }
+			final String urlMapping = (String) urlMappings;
+			for (Entry<String, Path> pathEntry : paths.entrySet()) {
+				if (ignorePaths != null && ignorePaths.contains(pathEntry.getKey())) {
+					newPaths.put(pathEntry.getKey(), pathEntry.getValue());
+					continue;
+				}
+				newPaths.put(urlMapping + pathEntry.getKey(), pathEntry.getValue());
+			}
+		} else {
+			@SuppressWarnings("unchecked")
+			Map<String, String> mappings = (Map<String, String>) urlMappings;
+			for (Entry<String, Path> pathEntry : paths.entrySet()) {
+				final String urlMapping = mappings.get(pathEntry.getKey());
+				if ((ignorePaths != null && ignorePaths.contains(pathEntry.getKey())) || urlMapping == null) {
+					newPaths.put(pathEntry.getKey(), pathEntry.getValue());
+					continue;
+				}
+				newPaths.put(urlMapping + pathEntry.getKey(), pathEntry.getValue());
+			}
 		}
 
 		result.setPaths(newPaths);
