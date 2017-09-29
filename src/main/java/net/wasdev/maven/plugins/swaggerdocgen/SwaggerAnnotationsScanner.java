@@ -16,7 +16,14 @@
 
 package net.wasdev.maven.plugins.swaggerdocgen;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -31,6 +38,10 @@ import java.util.zip.ZipFile;
 
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
+
+import org.codehaus.plexus.util.FileUtils;
+
+import com.google.common.io.Files;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.SwaggerDefinition;
@@ -49,6 +60,9 @@ public class SwaggerAnnotationsScanner {
     private Set<Class<?>> appClasses;
     private List<String> classNames;
     private final ZipFile warFile;
+    
+    private Path TmpJarFolder = null;
+    private URLClassLoader URLCL = null;
 
     public SwaggerAnnotationsScanner(ClassLoader classLoader, ZipFile warFile) throws IOException {
         this.classLoader = classLoader;
@@ -94,8 +108,30 @@ public class SwaggerAnnotationsScanner {
 
     private List<Class<?>> loadClasses(List<String> classNames) {
         List<Class<?>> loadedClasses = new ArrayList<Class<?>>();
+        Path jarPath = null;
         try {
-            WARClassLoader cl = new WARClassLoader(classLoader, warFile);
+        	jarPath = unpackJars(warFile);
+        	WARClassLoader cl = null;
+        	if(jarPath == null)
+        	{
+        		cl = new WARClassLoader(classLoader, warFile);
+        	}
+        	else
+        	{
+        		TmpJarFolder = jarPath;
+        		URLClassLoader ucl = getURLClassLoader(jarPath, classLoader);
+        		if(ucl == null)
+        		{
+        			cl = new WARClassLoader(classLoader, warFile);
+        			cleanupJarFolder();
+        		}
+        		else
+        		{
+        			URLCL = ucl;
+        			cl = new WARClassLoader(ucl, warFile);
+        		}
+        	}
+            
             if (classNames != null && !classNames.isEmpty()) {
                 for (String className : classNames) {
                     Class<?> clz = cl.loadClass(className);
@@ -105,10 +141,87 @@ public class SwaggerAnnotationsScanner {
         } catch (ClassNotFoundException e) {
             logger.finest(e.getMessage());
         }
+        
         return loadedClasses;
     }
 
-    private boolean isAnnotated(Class<?> clz) {
+    private URLClassLoader getURLClassLoader(Path jarPath, ClassLoader cl) {
+		try
+		{
+	    	ArrayList<URL> urls = new ArrayList<URL>();
+			for(File f : jarPath.toFile().listFiles())
+			{
+				URL url = new URL("jar:file:"+f.getAbsolutePath() + "!/");
+				urls.add(url);
+			}
+			
+			URL[] urlArray = new URL[urls.size()];
+			urls.toArray(urlArray);
+			URLClassLoader urlcl = new URLClassLoader(urlArray, cl);
+			return urlcl;
+		}
+		catch(Exception e)
+		{
+			return null;
+		}
+		
+		
+	}
+
+	private Path unpackJars(ZipFile war)
+    {
+		Path tmpDir = null;
+    	try
+    	{
+    		File f = new File(".\\tmp");
+    		f.mkdir();
+    		Path cwd = f.toPath();
+	    	tmpDir = java.nio.file.Files.createTempDirectory(cwd,"jars");
+	    	Enumeration<? extends ZipEntry> entries = war.entries();
+	        classNames = new ArrayList<String>();
+	        while (entries.hasMoreElements()) {
+	            ZipEntry zipEntry = (ZipEntry) entries.nextElement();
+	            String ename = zipEntry.getName();
+	            if (ename.startsWith("WEB-INF/lib/") && ename.endsWith(".jar")) {
+					InputStream is = warFile.getInputStream(zipEntry);
+					byte[] jarData = new byte[(int) zipEntry.getSize()];
+					int toRead = jarData.length;
+					int startIndex = 0;
+					while(toRead > 0)
+					{
+						int actuallyRead = is.read(jarData, startIndex, toRead);
+						startIndex += actuallyRead;
+						toRead -= actuallyRead;
+						
+					}
+					is.close();
+					
+					String jarName = ename.substring(12, ename.length());
+					File jarPath =  new File(tmpDir.toFile(), jarName);
+					FileOutputStream fos = new FileOutputStream(jarPath);
+					fos.write(jarData);
+					fos.flush();
+					fos.close();
+	            }
+	        }
+	        return tmpDir;
+    	}
+    	catch(Exception e)
+    	{
+    		if(tmpDir != null)
+    		{
+    			File f = tmpDir.toFile();
+    			for(File tmp : f.listFiles())
+    			{
+    				tmp.delete();
+    			}
+    			f.delete();
+    		}
+    		return null;
+    	}
+ 	}
+
+	private boolean isAnnotated(Class<?> clz) {
         if (clz.getAnnotation(Api.class) != null) {
             return true;
         }
@@ -289,5 +402,27 @@ public class SwaggerAnnotationsScanner {
             logger.finest("Failed to initialize Application: " + appClass.getName() + ": " + e.getMessage());
         }
         return null;
+    }
+    
+    public void cleanupJarFolder()
+    {
+    	if(URLCL != null)
+    	{
+    		try {
+				URLCL.close();
+				
+			} catch (IOException e) {
+				logger.info(String.format("Could not close URLClassLoader. Temp folder %s might not be deleted automatically. You can delete it manually", TmpJarFolder.toFile().getAbsolutePath()));
+			}
+    	}
+    	if(TmpJarFolder != null)
+    	{
+			File f = TmpJarFolder.toFile();
+			for(File tmp : f.listFiles())
+			{
+				tmp.deleteOnExit();
+			}
+			f.deleteOnExit();
+    	}
     }
 }

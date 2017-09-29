@@ -138,23 +138,33 @@ public class SwaggerProcessor {
 	}
 
 	private String getSwaggerDocFromAnnotatedClasses(ZipFile warZipFile, Swagger swaggerStubModel) throws IOException {
-		SwaggerAnnotationsScanner annScan = new SwaggerAnnotationsScanner(classLoader, warZipFile);
-		Set<Class<?>> classes = annScan.getScannedClasses();
-		Reader reader = new Reader(swaggerStubModel);
-		Set<String> stubPaths = null;
-		if (swaggerStubModel != null && swaggerStubModel.getPaths() != null) {
-			stubPaths = swaggerStubModel.getPaths().keySet();
+		SwaggerAnnotationsScanner annScan = null;
+		try
+		{
+			annScan = new SwaggerAnnotationsScanner(classLoader, warZipFile);
+			Set<Class<?>> classes = annScan.getScannedClasses();
+			Reader reader = new Reader(swaggerStubModel);
+			Set<String> stubPaths = null;
+			if (swaggerStubModel != null && swaggerStubModel.getPaths() != null) {
+				stubPaths = swaggerStubModel.getPaths().keySet();
+			}
+			Swagger swresult = reader.read(classes);
+			swresult = addUrlMapping(swresult, stubPaths, annScan.getUrlMapping());
+			String ext = FilenameUtils.getExtension(this.outputFile.getName());
+			if (ext.equalsIgnoreCase("json")) {
+				return createJSONfromPojo(swresult);
+			} else if (ext.equalsIgnoreCase("yaml")){
+				return createYAMLfromPojo(swresult);
+			}
+			throw new IllegalArgumentException("Unsupported document type: " + ext);
 		}
-		Swagger swresult = reader.read(classes);
-		swresult = addUrlMapping(swresult, stubPaths, annScan.getUrlMapping());
-		String ext = FilenameUtils.getExtension(this.outputFile.getName());
-		if (ext.equalsIgnoreCase("json")) {
-			return createJSONfromPojo(swresult);
-		} else if (ext.equalsIgnoreCase("yaml")){
-			return createYAMLfromPojo(swresult);
+		finally
+		{
+			if(annScan != null)
+			{
+				annScan.cleanupJarFolder();
+			}
 		}
-		
-		throw new IllegalArgumentException("Unsupported document type: " + ext);
 	}
 
 	private Swagger addUrlMapping(Swagger result, Set<String> ignorePaths, Object urlMappings) {
