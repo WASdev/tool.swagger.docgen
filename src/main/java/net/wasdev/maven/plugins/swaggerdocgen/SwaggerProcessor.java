@@ -42,176 +42,176 @@ import io.swagger.util.Yaml;
 
 public class SwaggerProcessor {
 
-	// Location of Swagger JSON doc in module
-	private static final String DEFAULT_SWAGGER_JSON_LOCATION = "META-INF/swagger.json";
+    // Location of Swagger JSON doc in module
+    private static final String DEFAULT_SWAGGER_JSON_LOCATION = "META-INF/swagger.json";
 
-	// Location of Swagger JSON stub doc in module
-	private static final String DEFAULT_SWAGGER_JSON_STUB_LOCATION = "META-INF/stub/swagger.json";
+    // Location of Swagger JSON stub doc in module
+    private static final String DEFAULT_SWAGGER_JSON_STUB_LOCATION = "META-INF/stub/swagger.json";
 
-	// Location of Swagger YAML doc in module
-	private static final String DEFAULT_SWAGGER_YAML_LOCATION = "META-INF/swagger.yaml";
+    // Location of Swagger YAML doc in module
+    private static final String DEFAULT_SWAGGER_YAML_LOCATION = "META-INF/swagger.yaml";
 
-	// Location of Swagger YAML stub doc in module
-	private static final String DEFAULT_SWAGGER_YAML_STUB_LOCATION = "META-INF/stub/swagger.yaml";
+    // Location of Swagger YAML stub doc in module
+    private static final String DEFAULT_SWAGGER_YAML_STUB_LOCATION = "META-INF/stub/swagger.yaml";
 
-	private final ClassLoader classLoader;
-	private final File warFile;
-	private final File outputFile;
+    private final ClassLoader classLoader;
+    private final File warFile;
+    private final File outputFile;
 
-	private static final Logger logger = Logger.getLogger(SwaggerProcessor.class.getName());
+    private static final Logger logger = Logger.getLogger(SwaggerProcessor.class.getName());
 
-	public SwaggerProcessor(ClassLoader classLoader, File warFile, File outputFile) {
-		this.classLoader = classLoader;
-		this.warFile = warFile;
-		this.outputFile = outputFile;
-	}
+    public SwaggerProcessor(ClassLoader classLoader, File warFile, File outputFile) {
+        this.classLoader = classLoader;
+        this.warFile = warFile;
+        this.outputFile = outputFile;
+    }
 
-	public void process() {
-		final String document = getDocument();
-		if (document != null) {
-			OutputStreamWriter writer = null;
-			try {
-				writer = new OutputStreamWriter(new FileOutputStream(outputFile), "UTF-8");
-				writer.write(document);
-				writer.flush();
-			} catch (IOException ioe) {
-				logger.severe("Failed to write to the output document " + outputFile.getAbsolutePath());
-			} finally {
-				tryToClose(writer);
-			}
-		}
-	}
+    public void process() {
+        final String document = getDocument();
+        if (document != null) {
+            OutputStreamWriter writer = null;
+            try {
+                writer = new OutputStreamWriter(new FileOutputStream(outputFile), "UTF-8");
+                writer.write(document);
+                writer.flush();
+            } catch (IOException ioe) {
+                logger.severe("Failed to write to the output document " + outputFile.getAbsolutePath());
+            } finally {
+                tryToClose(writer);
+            }
+        }
+    }
 
-	public String getDocument() {
-		ZipFile warZipFile = null;
-		try {
-			warZipFile = new ZipFile(warFile);
+    public String getDocument() {
+        ZipFile warZipFile = null;
+        try {
+            warZipFile = new ZipFile(warFile);
 
-			// Search for META-INF/swagger.json or META-INF/swagger.yaml in the
-			// WAR
-			ZipEntry entry = warZipFile.getEntry(DEFAULT_SWAGGER_JSON_LOCATION);
-			if (entry == null) {
-				entry = warZipFile.getEntry(DEFAULT_SWAGGER_YAML_LOCATION);
-			}
-			if (entry != null) {
-				InputStream swaggerStream = warZipFile.getInputStream(entry);
-				String swaggerDoc = getSwaggerDocFromStream(swaggerStream);
-				// Swagger swaggerModel = new SwaggerParser().parse(swaggerDoc,
-				// null, false);
-				Swagger swaggerModel = new SwaggerParser().parse(swaggerDoc, null);
+            // Search for META-INF/swagger.json or META-INF/swagger.yaml in the
+            // WAR
+            ZipEntry entry = warZipFile.getEntry(DEFAULT_SWAGGER_JSON_LOCATION);
+            if (entry == null) {
+                entry = warZipFile.getEntry(DEFAULT_SWAGGER_YAML_LOCATION);
+            }
+            if (entry != null) {
+                InputStream swaggerStream = warZipFile.getInputStream(entry);
+                String swaggerDoc = getSwaggerDocFromStream(swaggerStream);
+                // Swagger swaggerModel = new SwaggerParser().parse(swaggerDoc,
+                // null, false);
+                Swagger swaggerModel = new SwaggerParser().parse(swaggerDoc, null);
 
-				return createYAMLfromPojo(swaggerModel);
-			}
+                return createYAMLfromPojo(swaggerModel);
+            }
 
-			// Search for META-INF/stub/swagger.json or
-			// META-INF/stub/swagger.yaml in the WAR
-			Swagger swaggerStubModel = null;
-			entry = warZipFile.getEntry(DEFAULT_SWAGGER_JSON_STUB_LOCATION);
-			if (entry == null) {
-				entry = warZipFile.getEntry(DEFAULT_SWAGGER_YAML_STUB_LOCATION);
-			}
-			if (entry != null) {
-				InputStream swaggerStream = warZipFile.getInputStream(entry);
-				String swaggerDoc = getSwaggerDocFromStream(swaggerStream);
-				swaggerStubModel = new SwaggerParser().parse(swaggerDoc, null);
-			}
-			// Scan the WAR for annotations and merge with the stub document.
-			return getSwaggerDocFromAnnotatedClasses(warZipFile, swaggerStubModel);
-		} catch (IOException ioe) {
-			logger.severe("Failed to generate the Swagger document.");
-		} finally {
-			tryToClose(warZipFile);
-		}
-		return null;
-	}
+            // Search for META-INF/stub/swagger.json or
+            // META-INF/stub/swagger.yaml in the WAR
+            Swagger swaggerStubModel = null;
+            entry = warZipFile.getEntry(DEFAULT_SWAGGER_JSON_STUB_LOCATION);
+            if (entry == null) {
+                entry = warZipFile.getEntry(DEFAULT_SWAGGER_YAML_STUB_LOCATION);
+            }
+            if (entry != null) {
+                InputStream swaggerStream = warZipFile.getInputStream(entry);
+                String swaggerDoc = getSwaggerDocFromStream(swaggerStream);
+                swaggerStubModel = new SwaggerParser().parse(swaggerDoc, null);
+            }
+            // Scan the WAR for annotations and merge with the stub document.
+            return getSwaggerDocFromAnnotatedClasses(warZipFile, swaggerStubModel);
+        } catch (IOException ioe) {
+            logger.severe("Failed to generate the Swagger document.");
+        } finally {
+            tryToClose(warZipFile);
+        }
+        return null;
+    }
 
-	private String getSwaggerDocFromStream(InputStream is) {
-		try {
-			return IOUtils.toString(is, "UTF-8"); // YAML document's format has
-													// to be preserved
-		} catch (IOException ioe) {
-			logger.severe("Cannot read the Swagger document inside the application.");
-		} finally {
-			tryToClose(is);
-		}
-		return null;
-	}
+    private String getSwaggerDocFromStream(InputStream is) {
+        try {
+            return IOUtils.toString(is, "UTF-8"); // YAML document's format has
+                                                    // to be preserved
+        } catch (IOException ioe) {
+            logger.severe("Cannot read the Swagger document inside the application.");
+        } finally {
+            tryToClose(is);
+        }
+        return null;
+    }
 
-	private String getSwaggerDocFromAnnotatedClasses(ZipFile warZipFile, Swagger swaggerStubModel) throws IOException {
-		SwaggerAnnotationsScanner annScan = null;
-		try {
-			annScan = new SwaggerAnnotationsScanner(classLoader, warZipFile);
-			Set<Class<?>> classes = annScan.getScannedClasses();
-			Reader reader = new Reader(swaggerStubModel);
-			Set<String> stubPaths = null;
-			if (swaggerStubModel != null && swaggerStubModel.getPaths() != null) {
-				stubPaths = swaggerStubModel.getPaths().keySet();
-			}
-			Swagger swresult = reader.read(classes);
-			swresult = addUrlMapping(swresult, stubPaths, annScan.getUrlMapping());
-			String ext = FilenameUtils.getExtension(this.outputFile.getName());
-			if (ext.equalsIgnoreCase("json")) {
-				return createJSONfromPojo(swresult);
-			} else if (ext.equalsIgnoreCase("yaml")) {
-				return createYAMLfromPojo(swresult);
-			}
-			throw new IllegalArgumentException("Unsupported document type: " + ext);
-		} finally {
-			if (annScan != null) {
-				annScan.cleanupJarFolder();
-			}
-		}
-	}
+    private String getSwaggerDocFromAnnotatedClasses(ZipFile warZipFile, Swagger swaggerStubModel) throws IOException {
+        SwaggerAnnotationsScanner annScan = null;
+        try {
+            annScan = new SwaggerAnnotationsScanner(classLoader, warZipFile);
+            Set<Class<?>> classes = annScan.getScannedClasses();
+            Reader reader = new Reader(swaggerStubModel);
+            Set<String> stubPaths = null;
+            if (swaggerStubModel != null && swaggerStubModel.getPaths() != null) {
+                stubPaths = swaggerStubModel.getPaths().keySet();
+            }
+            Swagger swresult = reader.read(classes);
+            swresult = addUrlMapping(swresult, stubPaths, annScan.getUrlMapping());
+            String ext = FilenameUtils.getExtension(this.outputFile.getName());
+            if (ext.equalsIgnoreCase("json")) {
+                return createJSONfromPojo(swresult);
+            } else if (ext.equalsIgnoreCase("yaml")) {
+                return createYAMLfromPojo(swresult);
+            }
+            throw new IllegalArgumentException("Unsupported document type: " + ext);
+        } finally {
+            if (annScan != null) {
+                annScan.cleanupJarFolder();
+            }
+        }
+    }
 
-	private Swagger addUrlMapping(Swagger result, Set<String> ignorePaths, Object urlMappings) {
-		if (urlMappings == null || "".equals(urlMappings)) {
-			return result;
-		}
+    private Swagger addUrlMapping(Swagger result, Set<String> ignorePaths, Object urlMappings) {
+        if (urlMappings == null || "".equals(urlMappings)) {
+            return result;
+        }
 
-		Map<String, Path> paths = result.getPaths();
-		Map<String, Path> newPaths = new HashMap<String, Path>();
+        Map<String, Path> paths = result.getPaths();
+        Map<String, Path> newPaths = new HashMap<String, Path>();
 
-		if (urlMappings instanceof String) {
-			final String urlMapping = (String) urlMappings;
-			for (Entry<String, Path> pathEntry : paths.entrySet()) {
-				if (ignorePaths != null && ignorePaths.contains(pathEntry.getKey())) {
-					newPaths.put(pathEntry.getKey(), pathEntry.getValue());
-					continue;
-				}
-				newPaths.put(urlMapping + pathEntry.getKey(), pathEntry.getValue());
-			}
-		} else {
-			@SuppressWarnings("unchecked")
-			Map<String, String> mappings = (Map<String, String>) urlMappings;
-			for (Entry<String, Path> pathEntry : paths.entrySet()) {
-				final String urlMapping = mappings.get(pathEntry.getKey());
-				if ((ignorePaths != null && ignorePaths.contains(pathEntry.getKey())) || urlMapping == null) {
-					newPaths.put(pathEntry.getKey(), pathEntry.getValue());
-					continue;
-				}
-				newPaths.put(urlMapping + pathEntry.getKey(), pathEntry.getValue());
-			}
-		}
+        if (urlMappings instanceof String) {
+            final String urlMapping = (String) urlMappings;
+            for (Entry<String, Path> pathEntry : paths.entrySet()) {
+                if (ignorePaths != null && ignorePaths.contains(pathEntry.getKey())) {
+                    newPaths.put(pathEntry.getKey(), pathEntry.getValue());
+                    continue;
+                }
+                newPaths.put(urlMapping + pathEntry.getKey(), pathEntry.getValue());
+            }
+        } else {
+            @SuppressWarnings("unchecked")
+            Map<String, String> mappings = (Map<String, String>) urlMappings;
+            for (Entry<String, Path> pathEntry : paths.entrySet()) {
+                final String urlMapping = mappings.get(pathEntry.getKey());
+                if ((ignorePaths != null && ignorePaths.contains(pathEntry.getKey())) || urlMapping == null) {
+                    newPaths.put(pathEntry.getKey(), pathEntry.getValue());
+                    continue;
+                }
+                newPaths.put(urlMapping + pathEntry.getKey(), pathEntry.getValue());
+            }
+        }
 
-		result.setPaths(newPaths);
-		return result;
-	}
+        result.setPaths(newPaths);
+        return result;
+    }
 
-	private String createYAMLfromPojo(Object pojo) throws IOException {
-		return Yaml.mapper().writeValueAsString(pojo);
-	}
+    private String createYAMLfromPojo(Object pojo) throws IOException {
+        return Yaml.mapper().writeValueAsString(pojo);
+    }
 
-	private void tryToClose(Closeable c) {
-		if (c != null) {
-			try {
-				c.close();
-			} catch (IOException ioe) {
-				logger.severe("Failed to successfully close the file.");
-			}
-		}
-	}
+    private void tryToClose(Closeable c) {
+        if (c != null) {
+            try {
+                c.close();
+            } catch (IOException ioe) {
+                logger.severe("Failed to successfully close the file.");
+            }
+        }
+    }
 
-	private String createJSONfromPojo(Object pojo) throws IOException {
-		return Json.pretty(pojo);
-	}
+    private String createJSONfromPojo(Object pojo) throws IOException {
+        return Json.pretty(pojo);
+    }
 }
