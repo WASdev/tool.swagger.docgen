@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
@@ -38,10 +37,6 @@ import java.util.zip.ZipFile;
 
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
-
-import org.codehaus.plexus.util.FileUtils;
-
-import com.google.common.io.Files;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.SwaggerDefinition;
