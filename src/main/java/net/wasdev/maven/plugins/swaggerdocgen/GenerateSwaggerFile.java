@@ -49,8 +49,26 @@ public class GenerateSwaggerFile {
             
             System.exit(0);
         }
-
-        logger.severe("Please provide the path of the WAR application as an argument (and optionally the name of the swagger file)");
+        else if(args.length == 3)
+        {
+        	File warFile = createWARFile(args[0]);
+            if(warFile == null) {
+                System.exit(1);
+            }
+            File outputFile;
+            outputFile = createOutputFile(warFile, args[1]);
+            if(outputFile == null) {
+                System.exit(1);
+            }
+            
+            SwaggerProcessor processor = new SwaggerProcessor(GenerateSwaggerFile.class.getClassLoader(), warFile, outputFile); 
+            processor.process(args[2]);
+                
+            logger.info("Success: Your swagger file was succcessfully generated.");
+            
+            System.exit(0);
+        }
+        logger.severe("Please provide the path of the WAR application as an argument (and optionally the name of the swagger file and package to scan)");
         System.exit(1);
     }
 

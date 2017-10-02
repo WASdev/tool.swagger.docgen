@@ -49,7 +49,7 @@ public class SwaggerAnnotationsScanner {
     private static final String JAX_RS_APPLICATION_INIT_PARAM = "javax.ws.rs.Application";
     private static final Logger logger = Logger.getLogger(SwaggerAnnotationsScanner.class.getName());
 
-    private ClassLoader classLoader;
+    private WARClassLoader WARCL;
     private WebApp webApp;
     private Set<Class<?>> annotated;
     private Set<Class<?>> appClasses;
@@ -57,30 +57,86 @@ public class SwaggerAnnotationsScanner {
     private final ZipFile warFile;
 
     private Path TmpJarFolder = null;
-    private URLClassLoader URLCL = null;
 
     public SwaggerAnnotationsScanner(ClassLoader classLoader, ZipFile warFile) throws IOException {
-        this.classLoader = classLoader;
+    	this(null, classLoader, warFile);
+    }
+    
+    public SwaggerAnnotationsScanner(String packageName, ClassLoader classLoader, ZipFile warFile) throws IOException {
         this.warFile = warFile;
-        Enumeration<? extends ZipEntry> entries = warFile.entries();
-        classNames = new ArrayList<String>();
-        while (entries.hasMoreElements()) {
-            ZipEntry zipEntry = (ZipEntry) entries.nextElement();
-            String ename = zipEntry.getName();
-            if (ename.startsWith("WEB-INF/classes/")) {
-                if (ename.endsWith(".class")) {
-                    String className = ename.substring(16, ename.length() - 6);
-                    className = className.replace("/", ".");
-                    classNames.add(className);
-                }
-            }
+        
+        classNames = getClassesInArchive(warFile, "WEB-INF/classes/");
+        TmpJarFolder = unpackJars(warFile);
+        for(File f : TmpJarFolder.toFile().listFiles())
+        {
+        	classNames.addAll(getClassesInArchive(new ZipFile(f)));
         }
+       
+        
+        if(packageName != null)
+        {
+        	ArrayList<String> tmp = new ArrayList<String>();
+        	for(String className : classNames)
+        	{
+        		if(className.startsWith(packageName))
+        		{
+        			tmp.add(className);
+        		}
+        	}
+        	classNames = tmp;
+        }
+        
+        WARCL = getClassLoader(warFile, TmpJarFolder, classLoader);
+        
         ZipEntry webXmlEntry = warFile.getEntry("WEB-INF/web.xml");
         if (webXmlEntry != null) {
             webApp = WebApp.loadWebXML(warFile.getInputStream(webXmlEntry));
         }
     }
-
+    
+    private WARClassLoader getClassLoader (ZipFile warF, Path tmpJarPath, ClassLoader defaultClassLoader)
+    {
+    	if(tmpJarPath == null)
+        {
+        	return new WARClassLoader(defaultClassLoader, warF);
+        } 
+        else 
+        {
+            URLClassLoader ucl = getURLClassLoader(tmpJarPath, defaultClassLoader);
+            if (ucl == null) {
+            	cleanupJarFolder();
+            	return new WARClassLoader(defaultClassLoader, warF);
+            } else {
+                return new WARClassLoader(ucl, warF);
+            }
+        }
+    }
+    
+    private ArrayList<String> getClassesInArchive(ZipFile archive)
+    {
+    	return getClassesInArchive(archive, "");
+    }
+    
+    private ArrayList<String> getClassesInArchive(ZipFile archive, String pathPrefix)
+    {
+    	ArrayList<String> clsNames = new ArrayList<String>();
+    	Enumeration<? extends ZipEntry> entries = archive.entries();
+        while (entries.hasMoreElements()) {
+            ZipEntry zipEntry = (ZipEntry) entries.nextElement();
+            String ename = zipEntry.getName();
+            if (ename.startsWith(pathPrefix)) {
+                if (ename.endsWith(".class")) {
+                    String className = ename.substring(pathPrefix.length(), ename.length() - 6);
+                    className = className.replace("/", ".");
+                    clsNames.add(className);
+                }
+            }
+        }
+        
+        return clsNames;
+    }
+    
+    
     public Set<Class<?>> getScannedClasses() {
         appClasses = new HashSet<Class<?>>();
         List<Class<?>> loadedClasses = loadClasses(classNames);
@@ -103,27 +159,11 @@ public class SwaggerAnnotationsScanner {
 
     private List<Class<?>> loadClasses(List<String> classNames) {
         List<Class<?>> loadedClasses = new ArrayList<Class<?>>();
-        Path jarPath = null;
         try {
-            jarPath = unpackJars(warFile);
-            WARClassLoader cl = null;
-            if (jarPath == null) {
-                cl = new WARClassLoader(classLoader, warFile);
-            } else {
-                TmpJarFolder = jarPath;
-                URLClassLoader ucl = getURLClassLoader(jarPath, classLoader);
-                if (ucl == null) {
-                    cl = new WARClassLoader(classLoader, warFile);
-                    cleanupJarFolder();
-                } else {
-                    URLCL = ucl;
-                    cl = new WARClassLoader(ucl, warFile);
-                }
-            }
 
             if (classNames != null && !classNames.isEmpty()) {
                 for (String className : classNames) {
-                    Class<?> clz = cl.loadClass(className);
+                    Class<?> clz = WARCL.loadClass(className);
                     loadedClasses.add(clz);
                 }
             }
@@ -190,9 +230,9 @@ public class SwaggerAnnotationsScanner {
             if (tmpDir != null) {
                 File f = tmpDir.toFile();
                 for (File tmp : f.listFiles()) {
-                    tmp.delete();
+                    tmp.deleteOnExit();
                 }
-                f.delete();
+                f.deleteOnExit();
             }
             return null;
         }
@@ -378,16 +418,6 @@ public class SwaggerAnnotationsScanner {
     }
 
     public void cleanupJarFolder() {
-        if (URLCL != null) {
-            try {
-                URLCL.close();
-
-            } catch (IOException e) {
-                logger.info(String.format(
-                        "Could not close URLClassLoader. Temp folder %s might not be deleted automatically. You can delete it manually",
-                        TmpJarFolder.toFile().getAbsolutePath()));
-            }
-        }
         if (TmpJarFolder != null) {
             File f = TmpJarFolder.toFile();
             for (File tmp : f.listFiles()) {
