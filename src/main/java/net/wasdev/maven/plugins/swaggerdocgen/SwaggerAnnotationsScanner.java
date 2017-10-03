@@ -16,7 +16,13 @@
 
 package net.wasdev.maven.plugins.swaggerdocgen;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -38,40 +44,99 @@ import net.wasdev.maven.plugins.swaggerdocgen.xml.Servlet;
 import net.wasdev.maven.plugins.swaggerdocgen.xml.WebApp;
 
 public class SwaggerAnnotationsScanner {
-    
+
     private static final String JAX_RS_APPLICATION_CLASS_NAME = "javax.ws.rs.core.Application";
     private static final String JAX_RS_APPLICATION_INIT_PARAM = "javax.ws.rs.Application";
     private static final Logger logger = Logger.getLogger(SwaggerAnnotationsScanner.class.getName());
 
-    private ClassLoader classLoader;
+    private WARClassLoader WARCL;
     private WebApp webApp;
     private Set<Class<?>> annotated;
     private Set<Class<?>> appClasses;
     private List<String> classNames;
     private final ZipFile warFile;
 
+    private Path TmpJarFolder = null;
+
     public SwaggerAnnotationsScanner(ClassLoader classLoader, ZipFile warFile) throws IOException {
-        this.classLoader = classLoader;
+    	this(null, classLoader, warFile);
+    }
+    
+    public SwaggerAnnotationsScanner(String packageName, ClassLoader classLoader, ZipFile warFile) throws IOException {
         this.warFile = warFile;
-        Enumeration<? extends ZipEntry> entries = warFile.entries();
-        classNames = new ArrayList<String>();
-        while (entries.hasMoreElements()) {
-            ZipEntry zipEntry = (ZipEntry) entries.nextElement();
-            String ename = zipEntry.getName();
-            if (ename.startsWith("WEB-INF/classes/")) {
-                if (ename.endsWith(".class")) {
-                    String className = ename.substring(16, ename.length() - 6);
-                    className = className.replace("/", ".");
-                    classNames.add(className);
-                }
-            }
+        
+        classNames = getClassesInArchive(warFile, "WEB-INF/classes/");
+        TmpJarFolder = unpackJars(warFile);
+        for(File f : TmpJarFolder.toFile().listFiles())
+        {
+        	classNames.addAll(getClassesInArchive(new ZipFile(f)));
         }
+       
+        
+        if(packageName != null)
+        {
+        	ArrayList<String> tmp = new ArrayList<String>();
+        	for(String className : classNames)
+        	{
+        		if(className.startsWith(packageName))
+        		{
+        			tmp.add(className);
+        		}
+        	}
+        	classNames = tmp;
+        }
+        
+        WARCL = getClassLoader(warFile, TmpJarFolder, classLoader);
+        
         ZipEntry webXmlEntry = warFile.getEntry("WEB-INF/web.xml");
         if (webXmlEntry != null) {
             webApp = WebApp.loadWebXML(warFile.getInputStream(webXmlEntry));
         }
     }
-
+    
+    private WARClassLoader getClassLoader (ZipFile warF, Path tmpJarPath, ClassLoader defaultClassLoader)
+    {
+    	if(tmpJarPath == null)
+        {
+        	return new WARClassLoader(defaultClassLoader, warF);
+        } 
+        else 
+        {
+            URLClassLoader ucl = getURLClassLoader(tmpJarPath, defaultClassLoader);
+            if (ucl == null) {
+            	cleanupJarFolder();
+            	return new WARClassLoader(defaultClassLoader, warF);
+            } else {
+                return new WARClassLoader(ucl, warF);
+            }
+        }
+    }
+    
+    private ArrayList<String> getClassesInArchive(ZipFile archive)
+    {
+    	return getClassesInArchive(archive, "");
+    }
+    
+    private ArrayList<String> getClassesInArchive(ZipFile archive, String pathPrefix)
+    {
+    	ArrayList<String> clsNames = new ArrayList<String>();
+    	Enumeration<? extends ZipEntry> entries = archive.entries();
+        while (entries.hasMoreElements()) {
+            ZipEntry zipEntry = (ZipEntry) entries.nextElement();
+            String ename = zipEntry.getName();
+            if (ename.startsWith(pathPrefix)) {
+                if (ename.endsWith(".class")) {
+                    String className = ename.substring(pathPrefix.length(), ename.length() - 6);
+                    className = className.replace("/", ".");
+                    clsNames.add(className);
+                }
+            }
+        }
+        
+        return clsNames;
+    }
+    
+    
     public Set<Class<?>> getScannedClasses() {
         appClasses = new HashSet<Class<?>>();
         List<Class<?>> loadedClasses = loadClasses(classNames);
@@ -95,17 +160,82 @@ public class SwaggerAnnotationsScanner {
     private List<Class<?>> loadClasses(List<String> classNames) {
         List<Class<?>> loadedClasses = new ArrayList<Class<?>>();
         try {
-            WARClassLoader cl = new WARClassLoader(classLoader, warFile);
+
             if (classNames != null && !classNames.isEmpty()) {
                 for (String className : classNames) {
-                    Class<?> clz = cl.loadClass(className);
+                    Class<?> clz = WARCL.loadClass(className);
                     loadedClasses.add(clz);
                 }
             }
         } catch (ClassNotFoundException e) {
             logger.finest(e.getMessage());
         }
+
         return loadedClasses;
+    }
+
+    private URLClassLoader getURLClassLoader(Path jarPath, ClassLoader cl) {
+        try {
+            ArrayList<URL> urls = new ArrayList<URL>();
+            for (File f : jarPath.toFile().listFiles()) {
+                URL url = new URL("jar:file:" + f.getAbsolutePath() + "!/");
+                urls.add(url);
+            }
+
+            URL[] urlArray = new URL[urls.size()];
+            urls.toArray(urlArray);
+            URLClassLoader urlcl = new URLClassLoader(urlArray, cl);
+            return urlcl;
+        } catch (Exception e) {
+            return null;
+        }
+
+    }
+
+    private Path unpackJars(ZipFile war) {
+        Path tmpDir = null;
+        try {
+            File f = new File(".\\tmp");
+            f.mkdir();
+            Path cwd = f.toPath();
+            tmpDir = java.nio.file.Files.createTempDirectory(cwd, "jars");
+            Enumeration<? extends ZipEntry> entries = war.entries();
+            classNames = new ArrayList<String>();
+            while (entries.hasMoreElements()) {
+                ZipEntry zipEntry = (ZipEntry) entries.nextElement();
+                String ename = zipEntry.getName();
+                if (ename.startsWith("WEB-INF/lib/") && ename.endsWith(".jar")) {
+                    InputStream is = warFile.getInputStream(zipEntry);
+                    byte[] jarData = new byte[(int) zipEntry.getSize()];
+                    int toRead = jarData.length;
+                    int startIndex = 0;
+                    while (toRead > 0) {
+                        int actuallyRead = is.read(jarData, startIndex, toRead);
+                        startIndex += actuallyRead;
+                        toRead -= actuallyRead;
+
+                    }
+                    is.close();
+
+                    String jarName = ename.substring(12, ename.length());
+                    File jarPath = new File(tmpDir.toFile(), jarName);
+                    FileOutputStream fos = new FileOutputStream(jarPath);
+                    fos.write(jarData);
+                    fos.flush();
+                    fos.close();
+                }
+            }
+            return tmpDir;
+        } catch (Exception e) {
+            if (tmpDir != null) {
+                File f = tmpDir.toFile();
+                for (File tmp : f.listFiles()) {
+                    tmp.deleteOnExit();
+                }
+                f.deleteOnExit();
+            }
+            return null;
+        }
     }
 
     private boolean isAnnotated(Class<?> clz) {
@@ -193,16 +323,15 @@ public class SwaggerAnnotationsScanner {
     }
 
     public Object getUrlMapping() {
-        
+
         final Set<Class<?>> appClasses = this.appClasses;
         final int size = appClasses.size();
-        
+
         if (size < 2) {
             String urlMapping = null;
             if (size == 0) {
                 urlMapping = getUrlPatternForCoreAppServlet();
-            } 
-            else {
+            } else {
                 Class<?> appClass = appClasses.iterator().next();
                 urlMapping = findServletMappingForApp(appClass.getName());
                 if (urlMapping == null) {
@@ -210,8 +339,7 @@ public class SwaggerAnnotationsScanner {
                 }
             }
             return urlMapping;
-        }
-        else {
+        } else {
             // Mapping between operation paths and URLs.
             final Map<String, String> urlMappings = new HashMap<String, String>();
             final Set<String> allOperationPaths = new HashSet<String>();
@@ -238,8 +366,7 @@ public class SwaggerAnnotationsScanner {
                                 allOperationPaths.add(operationPath);
                                 urlMappings.put(operationPath, urlMapping);
                             }
-                        }
-                        else {
+                        } else {
                             allOperationPaths.addAll(operationPaths);
                         }
                     }
@@ -248,7 +375,7 @@ public class SwaggerAnnotationsScanner {
             return urlMappings;
         }
     }
-    
+
     private String getURLMappingFromApplication(Class<?> appClass) {
         ApplicationPath apath = appClass.getAnnotation(ApplicationPath.class);
         if (apath != null) {
@@ -260,13 +387,12 @@ public class SwaggerAnnotationsScanner {
                 urlMapping = "/" + urlMapping;
             }
             return urlMapping;
-        } 
-        else {
+        } else {
             logger.finest("Didn't find @ApplicationPath in Application classs " + appClass.getName());
         }
         return null;
     }
-    
+
     public Set<Class<?>> getClassesFromApplication(Class<?> appClass) {
         try {
             if (!Application.class.isAssignableFrom(appClass)) {
@@ -289,5 +415,15 @@ public class SwaggerAnnotationsScanner {
             logger.finest("Failed to initialize Application: " + appClass.getName() + ": " + e.getMessage());
         }
         return null;
+    }
+
+    public void cleanupJarFolder() {
+        if (TmpJarFolder != null) {
+            File f = TmpJarFolder.toFile();
+            for (File tmp : f.listFiles()) {
+                tmp.deleteOnExit();
+            }
+            f.deleteOnExit();
+        }
     }
 }
