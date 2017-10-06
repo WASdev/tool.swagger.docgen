@@ -59,14 +59,14 @@ public class SwaggerAnnotationsScanner {
     private Path TmpJarFolder = null;
 
     public SwaggerAnnotationsScanner(ClassLoader classLoader, ZipFile warFile) throws IOException {
-    	this(null, classLoader, warFile);
+    	this(".",null, classLoader, warFile);
     }
     
-    public SwaggerAnnotationsScanner(String packageName, ClassLoader classLoader, ZipFile warFile) throws IOException {
+    public SwaggerAnnotationsScanner(String tmpPath, String packageName, ClassLoader classLoader, ZipFile warFile) throws IOException {
         this.warFile = warFile;
         
         classNames = getClassesInArchive(warFile, "WEB-INF/classes/");
-        TmpJarFolder = unpackJars(warFile);
+        TmpJarFolder = unpackJars(warFile, tmpPath);
         for(File f : TmpJarFolder.toFile().listFiles())
         {
         	classNames.addAll(getClassesInArchive(new ZipFile(f)));
@@ -192,10 +192,10 @@ public class SwaggerAnnotationsScanner {
 
     }
 
-    private Path unpackJars(ZipFile war) {
+    private Path unpackJars(ZipFile war, String tmpPath) {
         Path tmpDir = null;
         try {
-            File f = new File(".\\tmp");
+        	File f = new File(tmpPath+"\\tmp");
             f.mkdir();
             Path cwd = f.toPath();
             tmpDir = java.nio.file.Files.createTempDirectory(cwd, "jars");

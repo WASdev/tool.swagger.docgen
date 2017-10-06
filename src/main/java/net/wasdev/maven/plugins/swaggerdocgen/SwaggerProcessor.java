@@ -57,21 +57,27 @@ public class SwaggerProcessor {
     private final ClassLoader classLoader;
     private final File warFile;
     private final File outputFile;
-
+    private final String tmpPath;
+    private final String packageName;
+    
+    
     private static final Logger logger = Logger.getLogger(SwaggerProcessor.class.getName());
 
-    public SwaggerProcessor(ClassLoader classLoader, File warFile, File outputFile) {
+    public SwaggerProcessor(ClassLoader classLoader, File warFile, File outputFile)
+    {
+    	this(null, ".", classLoader, warFile, outputFile);
+    }
+    
+    public SwaggerProcessor(String packageName, String tmpPath, ClassLoader classLoader, File warFile, File outputFile) {
         this.classLoader = classLoader;
         this.warFile = warFile;
         this.outputFile = outputFile;
+        this.packageName = packageName;
+        this.tmpPath = tmpPath;
     }
     
     public void process() {
-    	process(null);
-    }
-    
-    public void process(String packageName) {
-        final String document = getDocument(packageName);
+        final String document = getDocument();
         if (document != null) {
             OutputStreamWriter writer = null;
             try {
@@ -86,7 +92,7 @@ public class SwaggerProcessor {
         }
     }
 
-    public String getDocument(String packageName) {
+    public String getDocument() {
         ZipFile warZipFile = null;
         try {
             warZipFile = new ZipFile(warFile);
@@ -120,7 +126,7 @@ public class SwaggerProcessor {
                 swaggerStubModel = new SwaggerParser().parse(swaggerDoc, null);
             }
             // Scan the WAR for annotations and merge with the stub document.
-            return getSwaggerDocFromAnnotatedClasses(warZipFile, swaggerStubModel, packageName);
+            return getSwaggerDocFromAnnotatedClasses(warZipFile, swaggerStubModel);
         } catch (IOException ioe) {
             logger.severe("Failed to generate the Swagger document.");
         } finally {
@@ -141,10 +147,10 @@ public class SwaggerProcessor {
         return null;
     }
 
-    private String getSwaggerDocFromAnnotatedClasses(ZipFile warZipFile, Swagger swaggerStubModel, String packageName) throws IOException {
+    private String getSwaggerDocFromAnnotatedClasses(ZipFile warZipFile, Swagger swaggerStubModel) throws IOException {
         SwaggerAnnotationsScanner annScan = null;
         try {
-            annScan = new SwaggerAnnotationsScanner(packageName, classLoader, warZipFile);
+            annScan = new SwaggerAnnotationsScanner(tmpPath, packageName, classLoader, warZipFile);
             Set<Class<?>> classes = annScan.getScannedClasses();
             Reader reader = new Reader(swaggerStubModel);
             Set<String> stubPaths = null;
