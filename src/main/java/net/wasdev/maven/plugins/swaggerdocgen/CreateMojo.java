@@ -57,8 +57,8 @@ public class CreateMojo extends AbstractMojo {
 	/**
 	 * Package to scan for annotation classes
 	 */
-	@Parameter(defaultValue = "", required = false)
-	private String packageName;
+	@Parameter(required = false)
+	private String[] packageNames = null;
 	
 	/**
 	 * Package to scan for annotation classes
@@ -73,12 +73,7 @@ public class CreateMojo extends AbstractMojo {
 	 */
 	public void execute() throws MojoExecutionException {
 		try {
-			String pName = packageName;
-			if(packageName.isEmpty())
-			{
-				pName = null;
-			}
-			SwaggerProcessor processor = new SwaggerProcessor(pName, tmpPath,getClassLoader(), warFile, outputFile);
+			SwaggerProcessor processor = new SwaggerProcessor(packageNames, tmpPath,getClassLoader(), warFile, outputFile);
 			processor.process();
 		} catch (Exception e) {
 			throw new MojoExecutionException("Error generating a Swagger document.", e);
