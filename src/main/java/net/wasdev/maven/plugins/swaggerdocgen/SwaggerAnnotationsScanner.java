@@ -39,6 +39,7 @@ import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.SwaggerDefinition;
 import net.wasdev.maven.plugins.swaggerdocgen.xml.Servlet;
 import net.wasdev.maven.plugins.swaggerdocgen.xml.WebApp;
@@ -249,6 +250,9 @@ public class SwaggerAnnotationsScanner {
             return true;
         }
         if (clz.getAnnotation(javax.ws.rs.Path.class) != null) {
+            return true;
+        }
+        if (clz.getAnnotation(ApiModel.class) != null) {
             return true;
         }
 

@@ -22,7 +22,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
+import java.lang.reflect.Type;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -33,7 +35,10 @@ import java.util.zip.ZipFile;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 
+import io.swagger.annotations.ApiModel;
+import io.swagger.converter.ModelConverters;
 import io.swagger.jaxrs.Reader;
+import io.swagger.models.Model;
 import io.swagger.models.Path;
 import io.swagger.models.Swagger;
 import io.swagger.parser.SwaggerParser;
@@ -157,7 +162,14 @@ public class SwaggerProcessor {
             if (swaggerStubModel != null && swaggerStubModel.getPaths() != null) {
                 stubPaths = swaggerStubModel.getPaths().keySet();
             }
+            
+            for(Class<?> c : getModelClasses(classes))
+            {
+            		appendModels(c, reader.getSwagger());
+            }
+            
             Swagger swresult = reader.read(classes);
+            
             swresult = addUrlMapping(swresult, stubPaths, annScan.getUrlMapping());
             String ext = FilenameUtils.getExtension(this.outputFile.getName());
             if (ext.equalsIgnoreCase("json")) {
@@ -173,7 +185,19 @@ public class SwaggerProcessor {
         }
     }
 
-    private Swagger addUrlMapping(Swagger result, Set<String> ignorePaths, Object urlMappings) {
+    private Set<Class<?>> getModelClasses(Set<Class<?>> classes) {
+    	Set<Class<?>> modelClasses = new HashSet<Class<?>>();
+    	for(Class<?> c : classes)
+    	{
+    		if(c.getAnnotation(ApiModel.class) != null)
+    		{
+    			modelClasses.add(c);
+    		}
+    	}
+    	return modelClasses;
+	}
+
+	private Swagger addUrlMapping(Swagger result, Set<String> ignorePaths, Object urlMappings) {
         if (urlMappings == null || "".equals(urlMappings)) {
             return result;
         }
@@ -223,5 +247,12 @@ public class SwaggerProcessor {
 
     private String createJSONfromPojo(Object pojo) throws IOException {
         return Json.pretty(pojo);
+    }
+    
+    private void appendModels(Type type, Swagger swagger) {
+        final Map<String, Model> models = ModelConverters.getInstance().read(type);
+        for (Map.Entry<String, Model> entry : models.entrySet()) {
+            swagger.model(entry.getKey(), entry.getValue());
+        }
     }
 }
