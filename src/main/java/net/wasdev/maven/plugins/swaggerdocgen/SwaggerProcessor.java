@@ -22,7 +22,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
+import java.lang.reflect.Type;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -33,7 +35,10 @@ import java.util.zip.ZipFile;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 
+import io.swagger.annotations.ApiModel;
+import io.swagger.converter.ModelConverters;
 import io.swagger.jaxrs.Reader;
+import io.swagger.models.Model;
 import io.swagger.models.Path;
 import io.swagger.models.Swagger;
 import io.swagger.parser.SwaggerParser;
@@ -57,15 +62,24 @@ public class SwaggerProcessor {
 	private final ClassLoader classLoader;
 	private final File warFile;
 	private final File outputFile;
-
+	private final String tmpPath;
+	private final String[] prefixes;
+	
+	
 	private static final Logger logger = Logger.getLogger(SwaggerProcessor.class.getName());
 
 	public SwaggerProcessor(ClassLoader classLoader, File warFile, File outputFile) {
+		this(null, ".", classLoader, warFile, outputFile);
+	}
+	
+	public SwaggerProcessor(String[] prefixes, String tmpPath, ClassLoader classLoader, File warFile, File outputFile) {
 		this.classLoader = classLoader;
 		this.warFile = warFile;
 		this.outputFile = outputFile;
+		this.prefixes = prefixes;
+		this.tmpPath = tmpPath;
 	}
-
+	
 	public void process() {
 		final String document = getDocument();
 		if (document != null) {
@@ -138,23 +152,45 @@ public class SwaggerProcessor {
 	}
 
 	private String getSwaggerDocFromAnnotatedClasses(ZipFile warZipFile, Swagger swaggerStubModel) throws IOException {
-		SwaggerAnnotationsScanner annScan = new SwaggerAnnotationsScanner(classLoader, warZipFile);
-		Set<Class<?>> classes = annScan.getScannedClasses();
-		Reader reader = new Reader(swaggerStubModel);
-		Set<String> stubPaths = null;
-		if (swaggerStubModel != null && swaggerStubModel.getPaths() != null) {
-			stubPaths = swaggerStubModel.getPaths().keySet();
+		SwaggerAnnotationsScanner annScan = null;
+		try {
+			annScan = new SwaggerAnnotationsScanner(tmpPath, prefixes, classLoader, warZipFile);
+			Set<Class<?>> classes = annScan.getScannedClasses();
+			Reader reader = new Reader(swaggerStubModel);
+			Set<String> stubPaths = null;
+			if (swaggerStubModel != null && swaggerStubModel.getPaths() != null) {
+				stubPaths = swaggerStubModel.getPaths().keySet();
+			}
+			
+			for(Class<?> c : getModelClasses(classes)) {
+					appendModels(c, reader.getSwagger());
+			}
+			
+			Swagger swresult = reader.read(classes);
+			
+			swresult = addUrlMapping(swresult, stubPaths, annScan.getUrlMapping());
+			String ext = FilenameUtils.getExtension(this.outputFile.getName());
+			if (ext.equalsIgnoreCase("json")) {
+				return createJSONfromPojo(swresult);
+			} else if (ext.equalsIgnoreCase("yaml")) {
+				return createYAMLfromPojo(swresult);
+			}
+			throw new IllegalArgumentException("Unsupported document type: " + ext);
+		} finally {
+			if (annScan != null) {
+				annScan.cleanupJarFolder();
+			}
 		}
-		Swagger swresult = reader.read(classes);
-		swresult = addUrlMapping(swresult, stubPaths, annScan.getUrlMapping());
-		String ext = FilenameUtils.getExtension(this.outputFile.getName());
-		if (ext.equalsIgnoreCase("json")) {
-			return createJSONfromPojo(swresult);
-		} else if (ext.equalsIgnoreCase("yaml")){
-			return createYAMLfromPojo(swresult);
+	}
+
+	private Set<Class<?>> getModelClasses(Set<Class<?>> classes) {
+		Set<Class<?>> modelClasses = new HashSet<Class<?>>();
+		for(Class<?> c : classes) {
+			if(c.getAnnotation(ApiModel.class) != null) {
+				modelClasses.add(c);
+			}
 		}
-		
-		throw new IllegalArgumentException("Unsupported document type: " + ext);
+		return modelClasses;
 	}
 
 	private Swagger addUrlMapping(Swagger result, Set<String> ignorePaths, Object urlMappings) {
@@ -208,5 +244,12 @@ public class SwaggerProcessor {
 
 	private String createJSONfromPojo(Object pojo) throws IOException {
 		return Json.pretty(pojo);
+	}
+	
+	private void appendModels(Type type, Swagger swagger) {
+		final Map<String, Model> models = ModelConverters.getInstance().read(type);
+		for (Map.Entry<String, Model> entry : models.entrySet()) {
+			swagger.model(entry.getKey(), entry.getValue());
+		}
 	}
 }

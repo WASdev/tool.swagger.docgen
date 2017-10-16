@@ -53,6 +53,18 @@ public class CreateMojo extends AbstractMojo {
 	 */
 	@Parameter(defaultValue = "${project.build.directory}/${project.build.finalName}.war", required = false)
 	private File warFile;
+	
+	/**
+	 * The prefixes of classes to scan for annotations
+	 */
+	@Parameter(required = false)
+	private String[] prefixes = null;
+	
+	/**
+	 * The path the contents fo the WAR's WEB-INF\lib will temporarily be unpacked to
+	 */
+	@Parameter(defaultValue = "${project.build.directory}", required = false)
+	private String tmpPath;
 
 	/*
 	 * (non-Javadoc)
@@ -61,7 +73,7 @@ public class CreateMojo extends AbstractMojo {
 	 */
 	public void execute() throws MojoExecutionException {
 		try {
-			SwaggerProcessor processor = new SwaggerProcessor(getClassLoader(), warFile, outputFile);
+			SwaggerProcessor processor = new SwaggerProcessor(prefixes, tmpPath,getClassLoader(), warFile, outputFile);
 			processor.process();
 		} catch (Exception e) {
 			throw new MojoExecutionException("Error generating a Swagger document.", e);
