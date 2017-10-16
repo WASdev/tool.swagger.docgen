@@ -68,7 +68,7 @@ Parameters used by this goal:
 | --------  | ----------- | -------  |
 | outputFile | Location of the generated Swagger document. **Default value:** \${project.build.directory}/swagger.yaml | No |
 | warFile| Location of the WAR to be scanned. **Default value:** \${project.build.directory}/\${project.build.finalName}.war | No |
-| packageName| Only scan class names beginning with this string **Default value:** "" | No |
+| prefixes| Only scan class names beginning with one of these strings **Default value:** "" | No |
 | tmpPath| Location where the war's WEB-INF\lib will be unpacked temporarily **Default value:** \${project.build.directory} | No |
 
 
@@ -137,9 +137,9 @@ You can also specify the full path where you want your swagger file to be produc
 $ java -cp ".:target/swaggerdocgen-maven-plugin-<plugin_version>-jar-with-dependencies.jar:/libertyRuntime/dev/api/spec/*" net.wasdev.maven.plugins.swaggerdocgen.GenerateSwaggerFile /../path-to-application/app.war /path-to-swagger/swagger.json
 ```
 
-You can specify the prefix of the classes to scan and the path where the war's WEB-INF/lib will be unpacked temporarily on the command line too:
+You can specify the prefixes of the classes to scan and the path where the war's WEB-INF/lib will be unpacked temporarily on the command line too:
 ```sh
-$ java -cp ".:target/swaggerdocgen-maven-plugin-<plugin_version>-jar-with-dependencies.jar:/libertyRuntime/dev/api/spec/*" net.wasdev.maven.plugins.swaggerdocgen.GenerateSwaggerFile /../path-to-application/app.war /path-to-swagger/swagger.json my.package.name /path/to/unpack/
+$ java -cp ".:target/swaggerdocgen-maven-plugin-<plugin_version>-jar-with-dependencies.jar:/libertyRuntime/dev/api/spec/*" net.wasdev.maven.plugins.swaggerdocgen.GenerateSwaggerFile /../path-to-application/app.war /path-to-swagger/swagger.json /path/to/unpack/ my.class.prefix1 my.class.prefix2
 ```
 
 ## FAQ

@@ -61,13 +61,13 @@ public class GenerateSwaggerFile {
                 System.exit(1);
             }
             
-            String[] packageNames = new String[args.length-3];
+            String[] prefixes = new String[args.length-3];
             for(int i=3; i<args.length; i++)
             {
-            	packageNames[i-3] = args[i];
+            	prefixes[i-3] = args[i];
             }
             
-            SwaggerProcessor processor = new SwaggerProcessor(packageNames,args[2],GenerateSwaggerFile.class.getClassLoader(), warFile, outputFile); 
+            SwaggerProcessor processor = new SwaggerProcessor(prefixes,args[2],GenerateSwaggerFile.class.getClassLoader(), warFile, outputFile); 
             processor.process();
                 
             logger.info("Success: Your swagger file was succcessfully generated.");
