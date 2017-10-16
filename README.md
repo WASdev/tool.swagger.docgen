@@ -92,6 +92,10 @@ Example:
                 </executions>
                 <configuration>
                     <outputFile>${project.build.directory}/swagger.json</outputFile>
+                    <prefixes>
+                        <prefix>my.class.prefix</prefix>
+                        <prefix>my.other.class.prefix</prefix>
+                    </prefixes>
                 </configuration>
             </plugin>
         </plugins>
