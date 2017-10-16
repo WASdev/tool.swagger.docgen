@@ -45,7 +45,7 @@ import net.wasdev.maven.plugins.swaggerdocgen.xml.Servlet;
 import net.wasdev.maven.plugins.swaggerdocgen.xml.WebApp;
 
 public class SwaggerAnnotationsScanner {
-
+    
     private static final String JAX_RS_APPLICATION_CLASS_NAME = "javax.ws.rs.core.Application";
     private static final String JAX_RS_APPLICATION_INIT_PARAM = "javax.ws.rs.Application";
     private static final Logger logger = Logger.getLogger(SwaggerAnnotationsScanner.class.getName());
@@ -138,8 +138,7 @@ public class SwaggerAnnotationsScanner {
         
         return clsNames;
     }
-    
-    
+
     public Set<Class<?>> getScannedClasses() {
         appClasses = new HashSet<Class<?>>();
         List<Class<?>> loadedClasses = loadClasses(classNames);
@@ -173,7 +172,6 @@ public class SwaggerAnnotationsScanner {
         } catch (ClassNotFoundException e) {
             logger.finest(e.getMessage());
         }
-
         return loadedClasses;
     }
 
@@ -329,15 +327,16 @@ public class SwaggerAnnotationsScanner {
     }
 
     public Object getUrlMapping() {
-
+        
         final Set<Class<?>> appClasses = this.appClasses;
         final int size = appClasses.size();
-
+        
         if (size < 2) {
             String urlMapping = null;
             if (size == 0) {
                 urlMapping = getUrlPatternForCoreAppServlet();
-            } else {
+            } 
+            else {
                 Class<?> appClass = appClasses.iterator().next();
                 urlMapping = findServletMappingForApp(appClass.getName());
                 if (urlMapping == null) {
@@ -345,7 +344,8 @@ public class SwaggerAnnotationsScanner {
                 }
             }
             return urlMapping;
-        } else {
+        }
+        else {
             // Mapping between operation paths and URLs.
             final Map<String, String> urlMappings = new HashMap<String, String>();
             final Set<String> allOperationPaths = new HashSet<String>();
@@ -372,7 +372,8 @@ public class SwaggerAnnotationsScanner {
                                 allOperationPaths.add(operationPath);
                                 urlMappings.put(operationPath, urlMapping);
                             }
-                        } else {
+                        }
+                        else {
                             allOperationPaths.addAll(operationPaths);
                         }
                     }
@@ -381,7 +382,7 @@ public class SwaggerAnnotationsScanner {
             return urlMappings;
         }
     }
-
+    
     private String getURLMappingFromApplication(Class<?> appClass) {
         ApplicationPath apath = appClass.getAnnotation(ApplicationPath.class);
         if (apath != null) {
@@ -393,12 +394,13 @@ public class SwaggerAnnotationsScanner {
                 urlMapping = "/" + urlMapping;
             }
             return urlMapping;
-        } else {
+        } 
+        else {
             logger.finest("Didn't find @ApplicationPath in Application classs " + appClass.getName());
         }
         return null;
     }
-
+    
     public Set<Class<?>> getClassesFromApplication(Class<?> appClass) {
         try {
             if (!Application.class.isAssignableFrom(appClass)) {
