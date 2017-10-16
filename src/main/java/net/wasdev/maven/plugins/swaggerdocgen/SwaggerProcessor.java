@@ -63,7 +63,7 @@ public class SwaggerProcessor {
     private final File warFile;
     private final File outputFile;
     private final String tmpPath;
-    private final String[] packageNames;
+    private final String[] prefixes;
     
     
     private static final Logger logger = Logger.getLogger(SwaggerProcessor.class.getName());
@@ -73,11 +73,11 @@ public class SwaggerProcessor {
     	this(null, ".", classLoader, warFile, outputFile);
     }
     
-    public SwaggerProcessor(String[] packageNames, String tmpPath, ClassLoader classLoader, File warFile, File outputFile) {
+    public SwaggerProcessor(String[] prefixes, String tmpPath, ClassLoader classLoader, File warFile, File outputFile) {
         this.classLoader = classLoader;
         this.warFile = warFile;
         this.outputFile = outputFile;
-        this.packageNames = packageNames;
+        this.prefixes = prefixes;
         this.tmpPath = tmpPath;
     }
     
@@ -155,7 +155,7 @@ public class SwaggerProcessor {
     private String getSwaggerDocFromAnnotatedClasses(ZipFile warZipFile, Swagger swaggerStubModel) throws IOException {
         SwaggerAnnotationsScanner annScan = null;
         try {
-            annScan = new SwaggerAnnotationsScanner(tmpPath, packageNames, classLoader, warZipFile);
+            annScan = new SwaggerAnnotationsScanner(tmpPath, prefixes, classLoader, warZipFile);
             Set<Class<?>> classes = annScan.getScannedClasses();
             Reader reader = new Reader(swaggerStubModel);
             Set<String> stubPaths = null;

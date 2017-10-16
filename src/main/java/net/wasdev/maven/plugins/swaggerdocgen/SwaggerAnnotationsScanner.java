@@ -63,7 +63,7 @@ public class SwaggerAnnotationsScanner {
     	this(".",null, classLoader, warFile);
     }
     
-    public SwaggerAnnotationsScanner(String tmpPath, String[] packageNames, ClassLoader classLoader, ZipFile warFile) throws IOException {
+    public SwaggerAnnotationsScanner(String tmpPath, String[] prefixes, ClassLoader classLoader, ZipFile warFile) throws IOException {
         this.warFile = warFile;
         
         classNames = getClassesInArchive(warFile, "WEB-INF/classes/");
@@ -73,13 +73,12 @@ public class SwaggerAnnotationsScanner {
         	classNames.addAll(getClassesInArchive(new ZipFile(f)));
         }
        
-        
-        if(packageNames != null)
+        if(prefixes != null)
         {
         	ArrayList<String> tmp = new ArrayList<String>();
         	for(String className : classNames)
         	{
-        		for(String pName : packageNames)
+        		for(String pName : prefixes)
         		{
 	        		if(className.startsWith(pName))
 	        		{
