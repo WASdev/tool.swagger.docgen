@@ -50,14 +50,14 @@ public class SwaggerAnnotationsScanner {
     private static final String JAX_RS_APPLICATION_INIT_PARAM = "javax.ws.rs.Application";
     private static final Logger logger = Logger.getLogger(SwaggerAnnotationsScanner.class.getName());
 
-    private WARClassLoader WARCL;
+    private WARClassLoader warClassLoader;
     private WebApp webApp;
     private Set<Class<?>> annotated;
     private Set<Class<?>> appClasses;
     private List<String> classNames;
     private final ZipFile warFile;
 
-    private Path TmpJarFolder = null;
+    private Path tmpJarFolder = null;
 
     public SwaggerAnnotationsScanner(ClassLoader classLoader, ZipFile warFile) throws IOException {
     	this(".",null, classLoader, warFile);
@@ -67,29 +67,27 @@ public class SwaggerAnnotationsScanner {
         this.warFile = warFile;
         
         classNames = getClassesInArchive(warFile, "WEB-INF/classes/");
-        TmpJarFolder = unpackJars(warFile, tmpPath);
-        for(File f : TmpJarFolder.toFile().listFiles())
-        {
-        	classNames.addAll(getClassesInArchive(new ZipFile(f)));
+        tmpJarFolder = unpackJars(warFile, tmpPath);
+        if(tmpJarFolder != null) {
+        	for(File jar : tmpJarFolder.toFile().listFiles()) {
+            	classNames.addAll(getClassesInArchive(new ZipFile(jar)));
+            }
         }
        
-        if(prefixes != null)
-        {
+        if(prefixes != null) {
         	ArrayList<String> tmp = new ArrayList<String>();
-        	for(String className : classNames)
-        	{
-        		for(String pName : prefixes)
-        		{
-	        		if(className.startsWith(pName))
-	        		{
+        	for(String className : classNames) {
+        		for(String pName : prefixes) {
+	        		if(className.startsWith(pName)) {
 	        			tmp.add(className);
+	        			break;
 	        		}
         		}
         	}
         	classNames = tmp;
         }
         
-        WARCL = getClassLoader(warFile, TmpJarFolder, classLoader);
+        warClassLoader = getClassLoader(warFile, tmpJarFolder, classLoader);
         
         ZipEntry webXmlEntry = warFile.getEntry("WEB-INF/web.xml");
         if (webXmlEntry != null) {
@@ -97,14 +95,11 @@ public class SwaggerAnnotationsScanner {
         }
     }
     
-    private WARClassLoader getClassLoader (ZipFile warF, Path tmpJarPath, ClassLoader defaultClassLoader)
-    {
-    	if(tmpJarPath == null)
-        {
+    private WARClassLoader getClassLoader (ZipFile warF, Path tmpJarPath, ClassLoader defaultClassLoader) {
+    	if(tmpJarPath == null) {
         	return new WARClassLoader(defaultClassLoader, warF);
         } 
-        else 
-        {
+        else {
             URLClassLoader ucl = getURLClassLoader(tmpJarPath, defaultClassLoader);
             if (ucl == null) {
             	cleanupJarFolder();
@@ -115,13 +110,11 @@ public class SwaggerAnnotationsScanner {
         }
     }
     
-    private ArrayList<String> getClassesInArchive(ZipFile archive)
-    {
+    private ArrayList<String> getClassesInArchive(ZipFile archive) {
     	return getClassesInArchive(archive, "");
     }
     
-    private ArrayList<String> getClassesInArchive(ZipFile archive, String pathPrefix)
-    {
+    private ArrayList<String> getClassesInArchive(ZipFile archive, String pathPrefix) {
     	ArrayList<String> clsNames = new ArrayList<String>();
     	Enumeration<? extends ZipEntry> entries = archive.entries();
         while (entries.hasMoreElements()) {
@@ -165,7 +158,7 @@ public class SwaggerAnnotationsScanner {
 
             if (classNames != null && !classNames.isEmpty()) {
                 for (String className : classNames) {
-                    Class<?> clz = WARCL.loadClass(className);
+                    Class<?> clz = warClassLoader.loadClass(className);
                     loadedClasses.add(clz);
                 }
             }
@@ -426,8 +419,8 @@ public class SwaggerAnnotationsScanner {
     }
 
     public void cleanupJarFolder() {
-        if (TmpJarFolder != null) {
-            File f = TmpJarFolder.toFile();
+        if (tmpJarFolder != null) {
+            File f = tmpJarFolder.toFile();
             for (File tmp : f.listFiles()) {
                 tmp.deleteOnExit();
             }

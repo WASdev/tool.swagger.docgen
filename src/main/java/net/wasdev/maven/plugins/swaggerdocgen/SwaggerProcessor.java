@@ -68,8 +68,7 @@ public class SwaggerProcessor {
 	
 	private static final Logger logger = Logger.getLogger(SwaggerProcessor.class.getName());
 
-	public SwaggerProcessor(ClassLoader classLoader, File warFile, File outputFile)
-	{
+	public SwaggerProcessor(ClassLoader classLoader, File warFile, File outputFile) {
 		this(null, ".", classLoader, warFile, outputFile);
 	}
 	
@@ -163,8 +162,7 @@ public class SwaggerProcessor {
 				stubPaths = swaggerStubModel.getPaths().keySet();
 			}
 			
-			for(Class<?> c : getModelClasses(classes))
-			{
+			for(Class<?> c : getModelClasses(classes)) {
 					appendModels(c, reader.getSwagger());
 			}
 			
@@ -187,10 +185,8 @@ public class SwaggerProcessor {
 
 	private Set<Class<?>> getModelClasses(Set<Class<?>> classes) {
 		Set<Class<?>> modelClasses = new HashSet<Class<?>>();
-		for(Class<?> c : classes)
-		{
-			if(c.getAnnotation(ApiModel.class) != null)
-			{
+		for(Class<?> c : classes) {
+			if(c.getAnnotation(ApiModel.class) != null) {
 				modelClasses.add(c);
 			}
 		}

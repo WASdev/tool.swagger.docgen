@@ -25,7 +25,7 @@ public class GenerateSwaggerFile {
     private static final Logger logger = Logger.getLogger(GenerateSwaggerFile.class.getName());
 
     public static void main(String[] args) throws Exception {
-        if(args.length == 1 || args.length == 2) {
+        if(args.length == 1 || args.length == 2 || args.length >= 4) {
             File warFile = createWARFile(args[0]);
             if(warFile == null) {
                 System.exit(1);
@@ -42,34 +42,20 @@ public class GenerateSwaggerFile {
                 System.exit(1);
             }
 
-            SwaggerProcessor processor = new SwaggerProcessor(GenerateSwaggerFile.class.getClassLoader(), warFile, outputFile); 
-            processor.process();
+            SwaggerProcessor processor;
+            if(args.length >= 4) {
+            	String[] prefixes = new String[args.length-3];
+                for(int i=3; i<args.length; i++)
+                {
+                	prefixes[i-3] = args[i];
+                }
                 
-            logger.info("Success: Your swagger file was succcessfully generated.");
-            
-            System.exit(0);
-        }
-        else if(args.length >= 4)
-        {
-        	File warFile = createWARFile(args[0]);
-            if(warFile == null) {
-                System.exit(1);
+                processor = new SwaggerProcessor(prefixes,args[2],GenerateSwaggerFile.class.getClassLoader(), warFile, outputFile); 
+            } else {
+            	processor = new SwaggerProcessor(GenerateSwaggerFile.class.getClassLoader(), warFile, outputFile); 
             }
-            File outputFile;
-            outputFile = createOutputFile(warFile, args[1]);
-            if(outputFile == null) {
-                System.exit(1);
-            }
-            
-            String[] prefixes = new String[args.length-3];
-            for(int i=3; i<args.length; i++)
-            {
-            	prefixes[i-3] = args[i];
-            }
-            
-            SwaggerProcessor processor = new SwaggerProcessor(prefixes,args[2],GenerateSwaggerFile.class.getClassLoader(), warFile, outputFile); 
             processor.process();
-                
+            
             logger.info("Success: Your swagger file was succcessfully generated.");
             
             System.exit(0);
@@ -82,7 +68,7 @@ public class GenerateSwaggerFile {
     /**
     * Handle the first argument.
     * Return WAR application as a file on success
-    * Return null if failiure
+    * Return null if failure
     */
     private static File createWARFile(String argument) {
         File warFile = new File(argument);
